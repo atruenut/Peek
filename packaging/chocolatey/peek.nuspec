@@ -11,7 +11,7 @@
     <packageSourceUrl>https://github.com/HaBaDEDE/Peek/tree/main/packaging/chocolatey</packageSourceUrl>
     <docsUrl>https://habadede.github.io/Peek/</docsUrl>
     <bugTrackerUrl>https://github.com/HaBaDEDE/Peek/issues</bugTrackerUrl>
-    <iconUrl>https://raw.githubusercontent.com/HaBaDEDE/Peek/v0.1.0/docs/images/peek-icon.png</iconUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/HaBaDEDE/Peek@v0.1.0/docs/images/peek-icon.png</iconUrl>
     <licenseUrl>https://github.com/HaBaDEDE/Peek/blob/v0.1.0/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description><![CDATA[Peek is a tiny native Windows utility that answers three focused system questions:
