@@ -4,11 +4,6 @@
 
 namespace peek {
 
-enum class Language {
-    English,
-    ChineseSimplified,
-};
-
 enum class CloseBehavior {
     Ask = 0,
     MinimizeToTray = 1,
@@ -19,7 +14,6 @@ struct Strings {
     const wchar_t* ghost_tab;
     const wchar_t* unlock_tab;
     const wchar_t* focus_tab;
-    const wchar_t* language_switch;
     const wchar_t* ghost_waiting;
     const wchar_t* ghost_question;
     const wchar_t* unlock_question;
@@ -56,7 +50,6 @@ struct Strings {
     const wchar_t* hidden;
     const wchar_t* destroyed;
     const wchar_t* tray_open;
-    const wchar_t* tray_language;
     const wchar_t* tray_exit;
     const wchar_t* picker_title;
     const wchar_t* all_files;
@@ -78,9 +71,7 @@ struct Strings {
     const wchar_t* ask_every_time;
 };
 
-[[nodiscard]] const Strings& GetStrings(Language language);
-[[nodiscard]] Language LoadLanguage();
-void SaveLanguage(Language language);
+[[nodiscard]] const Strings& GetStrings();
 [[nodiscard]] CloseBehavior LoadCloseBehavior();
 void SaveCloseBehavior(CloseBehavior behavior);
 

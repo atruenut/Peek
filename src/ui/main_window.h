@@ -27,8 +27,6 @@ public:
     static constexpr int kOpenCommand = 1001;
     static constexpr int kExitCommand = 1002;
     static constexpr int kSettingsCommand = 1003;
-    static constexpr int kEnglishCommand = 1101;
-    static constexpr int kChineseCommand = 1102;
 
     MainWindow(EventStore& events, UnlockService& unlock, IconCache& icons);
     ~MainWindow();
@@ -38,7 +36,6 @@ public:
     void NotifyGhost();
     void DeliverFocus(FocusSnapshot snapshot);
     [[nodiscard]] HWND Handle() const { return hwnd_; }
-    [[nodiscard]] Language CurrentLanguage() const { return language_; }
 
 private:
     enum class Tab { Ghost, Unlock, Focus };
@@ -58,8 +55,6 @@ private:
     void HandleCloseRequest();
     void ShowSettings();
     void SetCloseBehavior(CloseBehavior behavior);
-    void SetLanguage(Language language);
-    void ToggleLanguage();
     void ChooseFile();
     void QueryUnlock(const std::wstring& path);
     void RevealPath(const std::wstring& path);
@@ -69,8 +64,7 @@ private:
     void UpdateFonts(UINT dpi);
     static std::wstring FormatTime(const std::chrono::system_clock::time_point& time);
     std::wstring KindLabel(GhostKind kind) const;
-    [[nodiscard]] const Strings& Texts() const { return GetStrings(language_); }
-    [[nodiscard]] std::wstring LocalizeUnlockError(const std::wstring& error) const;
+    [[nodiscard]] const Strings& Texts() const { return GetStrings(); }
     static std::wstring Elide(const std::wstring& text, std::size_t max);
 
     EventStore& events_;
@@ -83,7 +77,6 @@ private:
     HFONT font_{};
     HFONT font_bold_{};
     UINT dpi_{96};
-    Language language_{LoadLanguage()};
     CloseBehavior close_behavior_{LoadCloseBehavior()};
     UINT taskbar_created_message_{};
     Tab tab_{Tab::Ghost};

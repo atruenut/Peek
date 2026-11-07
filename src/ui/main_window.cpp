@@ -239,8 +239,6 @@ LRESULT MainWindow::HandleMessage(UINT message, WPARAM wparam, LPARAM lparam) {
             if (LOWORD(wparam) == kOpenCommand) ShowMain(Tab::Ghost);
             else if (LOWORD(wparam) == kExitCommand) DestroyWindow(hwnd_);
             else if (LOWORD(wparam) == kSettingsCommand) ShowSettings();
-            else if (LOWORD(wparam) == kEnglishCommand) SetLanguage(Language::English);
-            else if (LOWORD(wparam) == kChineseCommand) SetLanguage(Language::ChineseSimplified);
             return 0;
         case WM_CLOSE: HandleCloseRequest(); return 0;
         case WM_DESTROY:
@@ -273,9 +271,6 @@ void MainWindow::PaintHeader(HDC dc, const RECT& client) {
         Text(dc, labels[i], tab, active ? kAccent : kMuted, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         if (active) { RECT bar{tab.left + S(14, dpi_), tab.bottom - S(3, dpi_), tab.right - S(14, dpi_), tab.bottom}; Fill(dc, bar, kAccent); }
     }
-    RECT language = R(326, 14, 402, 44, dpi_);
-    Fill(dc, language, RGB(241, 244, 249));
-    Text(dc, strings.language_switch, language, kAccent, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     Line(dc, 0, header.bottom - 1, client.right, header.bottom - 1, kBorder);
 }
 
@@ -328,7 +323,7 @@ void MainWindow::PaintUnlock(HDC dc, const RECT&) {
     Text(dc, unlock_path_.empty() ? strings.drop_file : Elide(unlock_path_, 54), drop, unlock_path_.empty() ? kMuted : kText, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     RECT choose = R(18, 178, 132, 212, dpi_); Fill(dc, choose, kAccent); SelectObject(dc, font_bold_); Text(dc, strings.choose_file, choose, RGB(255,255,255), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     SelectObject(dc, font_);
-    if (!unlock_error_.empty()) { RECT err = R(144, 178, 402, 212, dpi_); Text(dc, LocalizeUnlockError(unlock_error_), err, RGB(181, 48, 48)); }
+    if (!unlock_error_.empty()) { RECT err = R(144, 178, 402, 212, dpi_); Text(dc, unlock_error_, err, RGB(181, 48, 48)); }
     else if (!unlock_path_.empty()) { RECT ok = R(144, 178, 402, 212, dpi_); Text(dc, lock_owners_.empty() ? strings.no_owner : std::to_wstring(lock_owners_.size()) + L" " + strings.owners_found, ok, kMuted); }
 
     int y = 224;
@@ -386,7 +381,6 @@ void MainWindow::PaintFocus(HDC dc, const RECT&) {
 }
 
 void MainWindow::OnClick(POINT point) {
-    if (Inside(R(326,14,402,44,dpi_), point)) { ToggleLanguage(); return; }
     for (int i = 0; i < 3; ++i) {
         RECT tab = R(18 + i * 96, 0, 102 + i * 96, 58, dpi_);
         if (Inside(tab, point)) { SwitchTo(static_cast<Tab>(i)); return; }
@@ -443,12 +437,8 @@ void MainWindow::RemoveTrayIcon() {
 void MainWindow::ShowTrayMenu(POINT point) {
     const auto& strings = Texts();
     HMENU menu = CreatePopupMenu();
-    HMENU languages = CreatePopupMenu();
-    AppendMenuW(languages, MF_STRING | (language_ == Language::English ? MF_CHECKED : 0), kEnglishCommand, L"English");
-    AppendMenuW(languages, MF_STRING | (language_ == Language::ChineseSimplified ? MF_CHECKED : 0), kChineseCommand, L"简体中文");
     AppendMenuW(menu, MF_STRING, kOpenCommand, strings.tray_open);
     AppendMenuW(menu, MF_STRING, kSettingsCommand, strings.tray_settings);
-    AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(languages), strings.tray_language);
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, kExitCommand, strings.tray_exit);
     SetForegroundWindow(hwnd_); TrackPopupMenu(menu, TPM_RIGHTBUTTON, point.x, point.y, 0, hwnd_, nullptr); DestroyMenu(menu);
@@ -554,17 +544,6 @@ void MainWindow::SetCloseBehavior(CloseBehavior behavior) {
     SaveCloseBehavior(behavior);
 }
 
-void MainWindow::SetLanguage(Language language) {
-    if (language_ == language) return;
-    language_ = language;
-    SaveLanguage(language_);
-    InvalidateRect(hwnd_, nullptr, FALSE);
-}
-
-void MainWindow::ToggleLanguage() {
-    SetLanguage(language_ == Language::English ? Language::ChineseSimplified : Language::English);
-}
-
 void MainWindow::ChooseFile() {
     wchar_t path[32768]{};
     OPENFILENAMEW dialog{}; dialog.lStructSize = sizeof(dialog); dialog.hwndOwner = hwnd_; dialog.lpstrFile = path; dialog.nMaxFile = static_cast<DWORD>(std::size(path));
@@ -628,19 +607,6 @@ std::wstring MainWindow::KindLabel(GhostKind kind) const {
         case GhostKind::WindowHidden: return strings.hidden; case GhostKind::WindowDestroyed: return strings.destroyed;
     }
     return {};
-}
-
-std::wstring MainWindow::LocalizeUnlockError(const std::wstring& error) const {
-    if (language_ == Language::English || error.empty()) return error;
-    const auto suffix = [&](const wchar_t* prefix) {
-        const std::size_t length = wcslen(prefix);
-        return error.size() > length ? error.substr(length) : std::wstring{};
-    };
-    if (error.starts_with(L"Restart Manager session failed:")) return L"无法启动重启管理器会话：" + suffix(L"Restart Manager session failed:");
-    if (error.starts_with(L"The file could not be registered:")) return L"无法登记该文件：" + suffix(L"The file could not be registered:");
-    if (error.starts_with(L"Lock query failed:")) return L"查询占用进程失败：" + suffix(L"Lock query failed:");
-    if (error == L"Choose or drop a file first.") return L"请先选择或拖入文件。";
-    return error;
 }
 
 std::wstring MainWindow::Elide(const std::wstring& text, std::size_t max) {

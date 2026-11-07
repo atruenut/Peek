@@ -32,9 +32,7 @@ int App::Run(HINSTANCE instance, int show_command) {
 
     std::wstring ghost_error;
     if (!ghost_.Start(ghost_error)) {
-        const wchar_t* title = window_.CurrentLanguage() == Language::ChineseSimplified
-            ? L"Peek — 闪现不可用" : L"Peek — Ghost unavailable";
-        MessageBoxW(window_.Handle(), ghost_error.c_str(), title, MB_ICONWARNING);
+        MessageBoxW(window_.Handle(), ghost_error.c_str(), L"Peek \u2014 Ghost unavailable", MB_ICONWARNING);
     }
     const int result = window_.Run();
     focus_.Stop();
