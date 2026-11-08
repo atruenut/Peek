@@ -204,7 +204,7 @@ inline constexpr wchar_t kSetShortcutDuplicate[] = L"already used by another Pee
 inline constexpr wchar_t kSetShortcutTaken[] = L"in use by another application";
 
 // Messages.
-inline constexpr wchar_t kErrMainWindow[] = L"The Peek window could not be created.";
+inline constexpr wchar_t kErrStartup[] = L"Peek could not start. It failed to create ";
 inline constexpr wchar_t kErrSettingsSave[] = L"The settings file could not be saved:";
 inline constexpr wchar_t kStatusWmiFallback[] = L"Process start/exit events are polled (WMI unavailable).";
 inline constexpr wchar_t kStatusStopped[] = L"Monitoring is off.";

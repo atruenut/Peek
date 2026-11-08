@@ -97,16 +97,19 @@ int App::Run(HINSTANCE instance) {
     RegisterClassExW(&wc);
     // A hidden top-level window (not message-only) so it receives the TaskbarCreated broadcast.
     controller_ = CreateWindowExW(WS_EX_TOOLWINDOW, kControllerClass, L"Peek controller", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance, this);
-    if (!controller_) {
-        MessageBoxW(nullptr, str::kErrMainWindow, str::kAppName, MB_ICONERROR);
+    auto fail = [&](const wchar_t* what) {
+        const DWORD error = GetLastError();
+        const std::wstring text = std::wstring(str::kErrStartup) + what + L"\n\n" + Win32ErrorText(error) +
+                                  L" (error " + std::to_wstring(error) + L")";
+        MessageBoxW(nullptr, text.c_str(), str::kAppName, MB_ICONERROR);
         return 1;
-    }
+    };
+    if (!controller_) return fail(L"the hidden controller window");
     taskbar_created_ = RegisterWindowMessageW(L"TaskbarCreated");
 
-    if (!window_.Create(instance) || !hud_.Create(instance) || !overlay_.Create(instance)) {
-        MessageBoxW(nullptr, str::kErrMainWindow, str::kAppName, MB_ICONERROR);
-        return 1;
-    }
+    if (!window_.Create(instance)) return fail(L"the Peek window");
+    if (!hud_.Create(instance)) return fail(L"the HUD");
+    if (!overlay_.Create(instance)) return fail(L"the Focus highlight");
     AddTrayIcon();
     ApplySettings();
 
@@ -344,6 +347,9 @@ LRESULT CALLBACK App::ControllerProc(HWND hwnd, UINT message, WPARAM wparam, LPA
     if (message == WM_NCCREATE) {
         self = static_cast<App*>(reinterpret_cast<CREATESTRUCTW*>(lparam)->lpCreateParams);
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        // CreateWindowExW has not returned yet, so controller_ is still null. Messages sent during creation
+        // (WM_NCCREATE, WM_CREATE) are forwarded to DefWindowProc with this handle; a null one makes creation fail.
+        if (self) self->controller_ = hwnd;
     } else {
         self = reinterpret_cast<App*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }

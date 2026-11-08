@@ -76,4 +76,9 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
 
 ## Findings from Windows runs
 
-(Add dated notes here.)
+- 2026-11-08: first launch on Windows failed with "The Peek window could not be created." Cause: `App::ControllerProc` passed the
+  member `controller_` (still null during `CreateWindowExW`) to `DefWindowProc` for `WM_NCCREATE`, so creation failed. Fixed by
+  storing the handle in `WM_NCCREATE`. Startup errors now name the window that failed and include the Windows error code.
+  Lesson: every window procedure must use the `hwnd` parameter or set its member handle in `WM_NCCREATE`. All six window classes were checked.
+
+(Add further dated notes here.)
