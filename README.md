@@ -1,3 +1,5 @@
+<img src="docs/images/peek-icon.png" width="96" height="96" alt="Peek icon" align="right">
+
 # Peek
 
 Peek is a small, native Windows utility that makes processes, windows, files and interface elements
@@ -179,6 +181,18 @@ topleft/topright/bottomleft/bottomright; `Fullscreen` hide/show; `Trace` off/30s
   other registered applications; it asks the owning process's windows to close instead.
 - The optional mouse gesture for Focus is not implemented.
 - Selecting a node in the Focus hierarchy does not move the highlight yet.
+
+## Repository layout
+
+```
+src/            C++20 sources (core, ghost, focus, unlock, shell, ui)
+resources/      icon, manifest (per-monitor DPI, long paths), version info
+tests/          portable unit tests (INI, hotkeys, settings); run with tests/run.sh
+scripts/        ci-smoke.ps1 (CI), dev/crosscheck.sh (cross-compile on Linux/macOS),
+                generate-brand-assets.py (regenerates the icon; needs Python + Pillow)
+docs/           REDESIGN_PLAN.md (audit and decisions), DEVLOG.md (status, what to debug), TESTING.md
+ARCHITECTURE.md threads, data flow, security posture
+```
 
 ## License
 

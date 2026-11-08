@@ -1,6 +1,4 @@
 /build/
-/.tools/
-/packaging/chocolatey/out/
 /.vs/
 /.vscode/
 *.user
@@ -10,3 +8,5 @@
 *.log
 __pycache__/
 *.pyc
+# Local settings written when running from the source tree
+Peek.ini

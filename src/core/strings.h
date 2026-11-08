@@ -32,8 +32,6 @@ inline constexpr wchar_t kHudHide[] = L"Hide the HUD (monitoring continues)";
 inline constexpr wchar_t kUnknownProcess[] = L"Unknown process";
 inline constexpr wchar_t kRunning[] = L"running";
 inline constexpr wchar_t kEnded[] = L"ended";
-inline constexpr wchar_t kUnknown[] = L"unknown";
-inline constexpr wchar_t kFrom[] = L"from";
 inline constexpr wchar_t kEventsShown[] = L"events";
 
 // Menus (HUD context menu and tray).
@@ -105,14 +103,12 @@ inline constexpr wchar_t kColFiles[] = L"Files";
 inline constexpr wchar_t kColType[] = L"Type";
 inline constexpr wchar_t kUnlockEmpty[] = L"Nothing investigated yet. Add files or folders, drop them here, or right-click a file in Explorer.";
 inline constexpr wchar_t kProtectedNote[] = L"This is a Windows service, Windows Explorer or a critical system process. Peek does not offer to close or end it.";
-inline constexpr wchar_t kBtnChooseFile[] = L"Choose file…";
 inline constexpr wchar_t kBtnInvestigate[] = L"Check again";
 inline constexpr wchar_t kBtnEndProcess[] = L"End process…";
 inline constexpr wchar_t kNoLockOwner[] = L"No application reported using this file.";
 inline constexpr wchar_t kOwnersFound[] = L"application(s) using this file";
 inline constexpr wchar_t kChooseFileFirst[] = L"Choose or drop a file first.";
 inline constexpr wchar_t kPickerTitle[] = L"Choose a file to investigate";
-inline constexpr wchar_t kAllFiles[] = L"All files";
 inline constexpr wchar_t kTerminateTitle[] = L"Peek — End process";
 inline constexpr wchar_t kTerminateQuestion[] = L"End this process?";
 inline constexpr wchar_t kUnsavedWarning[] = L"Unsaved work in that process may be lost. Try closing the application normally first.";
@@ -128,7 +124,6 @@ inline constexpr wchar_t kBtnCopyJson[] = L"Copy JSON";
 inline constexpr wchar_t kBtnCopyC[] = L"Copy C struct";
 inline constexpr wchar_t kBtnStartInspect[] = L"Start inspecting";
 inline constexpr wchar_t kBtnStopInspect[] = L"Stop inspecting";
-inline constexpr wchar_t kFocusMovePointer[] = L"Move the pointer over a window or control.";
 inline constexpr wchar_t kUnavailable[] = L"unavailable";
 inline constexpr wchar_t kPropProcess[] = L"Process";
 inline constexpr wchar_t kPropPid[] = L"PID";
@@ -209,12 +204,9 @@ inline constexpr wchar_t kSetShortcutDuplicate[] = L"already used by another Pee
 inline constexpr wchar_t kSetShortcutTaken[] = L"in use by another application";
 
 // Messages.
-inline constexpr wchar_t kErrMainClass[] = L"The Peek window class could not be registered.";
 inline constexpr wchar_t kErrMainWindow[] = L"The Peek window could not be created.";
-inline constexpr wchar_t kErrGhostUnavailable[] = L"Peek — Ghost unavailable";
 inline constexpr wchar_t kErrSettingsSave[] = L"The settings file could not be saved:";
 inline constexpr wchar_t kStatusWmiFallback[] = L"Process start/exit events are polled (WMI unavailable).";
-inline constexpr wchar_t kStatusActive[] = L"Monitoring active.";
 inline constexpr wchar_t kStatusStopped[] = L"Monitoring is off.";
 
 } // namespace peek::str

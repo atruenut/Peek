@@ -65,11 +65,14 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
 
 ## Not done / next steps
 
+- Some page text is still written inline in `src/ui/*_page.cpp` (labels such as "Parent", "Child", "Status"); the rest lives in
+  `src/core/strings.h`. Finish moving them if localization is ever wanted.
 - ETW process capture (needs a privileged session; design a graceful "not available" path first).
 - Optional local event history file (off by default, INI-controlled).
 - Highlight the selected node in the Focus hierarchy; process tree view beyond parent/children.
 - `docs/images`: no screenshots exist for the new UI; add them after the first Windows run.
-- CI (`.github/workflows/windows.yml`) builds x64 and runs the self-test; unverified since the rewrite.
+- CI (`.github/workflows/windows.yml`): a Linux job runs unit tests and the cross-compile; a Windows job builds with MSYS2 and runs the
+  self-test. Neither has run on GitHub since the rewrite; check the first run.
 
 ## Findings from Windows runs
 

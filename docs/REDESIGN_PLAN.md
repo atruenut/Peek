@@ -24,40 +24,46 @@ About 3,300 lines of C++20 across 28 source files. It is small and mostly clean.
 | `CMakeLists.txt`, PowerShell build scripts | **Replace** with `build.bat` (GCC/G++, MinGW-w64). |
 | `docs/` website, screenshots, `packaging/`, `bucket/`, `dist/Peek.exe` | **Remove.** They describe the old UI, contain Chinese, and point at the upstream author's release channels. |
 
-### Chinese content found
+### Chinese content found (all removed)
 
 `README.md` (bilingual), `docs/index.html`, `docs/site.js`, `packaging/winget/.../locale.zh-CN.yaml`,
-`src/core/localization.cpp`, `src/ui/main_window.cpp`, `src/app.cpp`, and a stray mention in `TESTING.md`.
+`src/core/localization.cpp`, `src/ui/main_window.cpp`, `src/app.cpp`, and and a stray mention in the old `TESTING.md`.
 Old screenshots also show the Chinese UI.
 
-## 2. Target architecture
+## 2. Architecture as built
 
 ```
 src/
-  core/    types, strings, ini, settings, event_store, process_resolver, format, hotkey, icon_cache, privilege_helper
+  core/    types, strings, ini, settings(+manager), event_store, process_resolver, investigation, window_util,
+           format, hotkey, icon_cache, privilege_helper, com_scope
   ghost/   ghost_monitor (capture only, no UI)
-  focus/   focus_inspector
+  focus/   focus_inspector (UI Automation worker), focus_format (text/JSON/C)
   unlock/  unlock_service
-  ui/      theme, hud_window, main_window, overlay_window
-  app.*    composition root and shared services
+  shell/   shell_integration (Explorer verbs)
+  ui/      theme, gdi, hud_window, overlay_window, main_window, page + ghost/process/unlock/focus/settings pages
+  app.*, cli.*, main.cpp   composition root, tray, shortcuts, command line, single instance
 ```
 
+See [../ARCHITECTURE.md](../ARCHITECTURE.md) for threading and data flow.
+
 Rules: capture threads never touch UI objects; they post a coalesced message. UI code never calls
-blocking Win32/WMI/COM APIs on the UI thread except for cheap, bounded lookups.
+blocking Win32/WMI/COM APIs on the UI thread except for cheap, bounded lookups (Unlock investigations run
+on a worker; all UI Automation runs on one worker).
 
 ### Three interaction layers
 
 1. **HUD** (`HudWindow`): layered, topmost, `WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW`, no taskbar button, not in Alt+Tab.
    Compact and expanded modes, anchored to a corner of a chosen monitor, DPI aware, hidden for fullscreen apps.
-2. **Contextual actions**: right-click menu on a HUD row (copy, open location, open in Investigation window, dismiss).
-   Explorer integration comes in Phase 2.
-3. **Investigation window** (`MainWindow`): resizable, tab control plus ListView/edit controls. Secondary to the HUD.
+2. **Contextual actions**: HUD row menu, tray menu, Explorer right-click entries, and `Navigator` links between
+   pages (event -> process -> window -> Focus; lock owner -> process).
+3. **Investigation window** (`MainWindow`): resizable frame with a custom-drawn tab strip hosting pages built from
+   native controls: Ghost, Process, Unlock, Focus, Settings. Secondary to the HUD.
 
 ### Settings
 
 Portable `Peek.ini` next to the executable. If that directory is not writable the file falls back to
 `%APPDATA%\Peek\Peek.ini`. A small hand-written UTF-8 INI reader/writer (no Win32 dependency, unit-testable on any host).
-Values are validated and clamped on load. No registry use.
+Values are validated and clamped on load. No registry use for settings (the optional Explorer entries are the only registry writes).
 
 ## 3. Phases and status
 
@@ -67,7 +73,7 @@ Values are validated and clamped on load. No registry use.
 | 2 | Explorer integration, multi-file Unlock, graduated close/terminate workflow | code complete, untested |
 | 3 | Focus Live/Frozen/Pinned, UIA tree, JSON/C copy | code complete, untested |
 | 4 | Unified process/window/file model, process tree, ETW investigation, Trace mode improvements | partly (no ETW) |
-| 5 | Test matrix on Windows 10/11, ARM64, DPI, fullscreen, portable; release build | planned |
+| 5 | Test matrix on Windows 10/11, ARM64, DPI, fullscreen, portable; release build | not started ([TESTING.md](TESTING.md)) |
 
 ## 4. Technical risks
 

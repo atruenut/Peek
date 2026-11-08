@@ -2,7 +2,7 @@ name: Windows build
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'redesign/**']
     tags: ["v*"]
   pull_request:
     branches: [main]
@@ -12,6 +12,22 @@ permissions:
   contents: read
 
 jobs:
+  host-checks:
+    # Portable unit tests and a cross-compile check. Catches build and logic errors quickly; does not run Peek.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MinGW-w64
+        run: sudo apt-get update && sudo apt-get install -y g++-mingw-w64-x86-64-posix
+      - name: Select the posix-threads compiler (std::thread needs it)
+        run: |
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+      - name: Unit tests
+        run: bash tests/run.sh
+      - name: Cross-compile
+        run: bash scripts/dev/crosscheck.sh x64 release
+
   build-x64:
     runs-on: windows-2022
     steps:
