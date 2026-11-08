@@ -19,7 +19,6 @@ enum class HudAnchor { TopLeft, TopRight, BottomLeft, BottomRight };
 enum class FullscreenBehavior { Hide, Show };
 enum class TraceMode { Off, Seconds30, Minutes5, Continuous };
 enum class StateFilter { Any, Running, Terminated };
-enum class FocusState { Live, Frozen, Pinned };
 
 struct ShortcutSetting {
     bool enabled{false};
@@ -52,6 +51,7 @@ struct Settings {
         int retention{500};                 // events kept in memory, 50..10000
         TraceMode trace{TraceMode::Off};
         bool ignore_noise{true};            // skip IME, tooltip, shadow and similar helper windows
+        bool group_lifecycle{false};        // list events grouped by process lifetime
         std::string filter_text;
         std::uint32_t filter_categories{kAllCategories};
         StateFilter filter_state{StateFilter::Any};
@@ -69,8 +69,6 @@ struct Settings {
         std::string highlight_color{"#3985FF"};
         int highlight_width{3};             // pixels at 96 DPI, 1..12
         int highlight_duration_ms{0};       // 0 = until inspection stops
-        FocusState state{FocusState::Live};
-        bool mouse_gesture{false};
     } focus;
 
     struct Shortcuts {

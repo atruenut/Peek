@@ -66,7 +66,8 @@ int RunSelfTest(const std::wstring& requested_report_path) {
     // Real WMI process trace test with a deliberately short child process.
     GhostMonitor ghost(store, resolver, {});
     std::wstring ghost_error;
-    bool ghost_ok = ghost.Start(ghost_error);
+    bool ghost_ok = ghost.Start() && ghost.WaitUntilReady(std::chrono::milliseconds(5000));
+    if (!ghost_ok) ghost_error = ghost.Status().message.empty() ? L"Ghost capture did not become ready." : ghost.Status().message;
     DWORD short_pid = 0;
     if (ghost_ok) {
         wchar_t command[] = L"cmd.exe /d /c exit 0";
@@ -109,9 +110,10 @@ int RunSelfTest(const std::wstring& requested_report_path) {
     HANDLE locked = CreateFileW(temp_file, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     UnlockService unlock(resolver);
     std::wstring unlock_error;
-    const auto owners = unlock.Query(temp_file, unlock_error);
+    const UnlockReport unlock_report = unlock.Investigate({temp_file}, UnlockLimits{}, nullptr);
     bool found_self = false;
-    for (const auto& owner : owners) found_self |= owner.process.pid == GetCurrentProcessId();
+    for (const auto& group : unlock_report.groups) found_self |= group.owner.process.pid == GetCurrentProcessId();
+    for (const auto& message : unlock_report.messages) unlock_error += message + L" ";
     checks.push_back({L"Unlock exclusive file", locked != INVALID_HANDLE_VALUE && unlock_error.empty() && found_self,
                       unlock_error.empty() ? L"Expected Restart Manager to report the self-test process." : unlock_error});
     if (locked != INVALID_HANDLE_VALUE) CloseHandle(locked);
@@ -127,7 +129,7 @@ int RunSelfTest(const std::wstring& requested_report_path) {
         SetForegroundWindow(host);
     }
     UpdateWindow(host);
-    FocusInspector inspector(resolver, {});
+    FocusInspector inspector(resolver, {}, {}, {});
     FocusSnapshot focus_snapshot;
     std::wstring focus_error;
     bool focus_received = false;

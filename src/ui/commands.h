@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace peek {
 
@@ -24,6 +25,8 @@ class CommandHost {
 public:
     virtual ~CommandHost() = default;
     virtual void Execute(Command command, std::uint64_t argument = 0) = 0;
+    // Result of the last shortcut registration for slot 0 (activate), 1 (ghost) or 2 (focus).
+    [[nodiscard]] virtual std::wstring ShortcutStatus(int slot) const = 0;
 };
 
 } // namespace peek

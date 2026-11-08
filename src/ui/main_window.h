@@ -1,96 +1,70 @@
 #pragma once
 
-#include "core/event_store.h"
-#include "core/icon_cache.h"
-#include "core/localization.h"
-#include "focus/focus_inspector.h"
-#include "ui/overlay_window.h"
-#include "unlock/unlock_service.h"
+#include "ui/focus_page.h"
+#include "ui/ghost_page.h"
+#include "ui/page.h"
+#include "ui/process_page.h"
+#include "ui/settings_page.h"
+#include "ui/unlock_page.h"
 
-#include <shellapi.h>
-
-#include <functional>
-#include <mutex>
-#include <optional>
-#include <string>
-#include <vector>
+#include <memory>
 
 namespace peek {
 
-class MainWindow {
+// The investigation window: a resizable frame with a custom-drawn tab strip hosting the pages.
+// It is secondary to the HUD; closing it hides it (or exits, per the Close button setting).
+class MainWindow : public Navigator {
 public:
-    static constexpr UINT kTrayMessage = WM_APP + 10;
-    static constexpr UINT kGhostChanged = WM_APP + 11;
-    static constexpr UINT kFocusChanged = WM_APP + 12;
-    static constexpr int kGhostHotkey = 1;
-    static constexpr int kFocusHotkey = 2;
-    static constexpr int kOpenCommand = 1001;
-    static constexpr int kExitCommand = 1002;
-    static constexpr int kSettingsCommand = 1003;
+    enum class Tab { Ghost = 0, Process, Unlock, Focus, Settings };
 
-    MainWindow(EventStore& events, UnlockService& unlock, IconCache& icons);
+    MainWindow(EventStore& events, SettingsManager& settings, ProcessResolver& resolver, IconCache& icons,
+               UnlockService& unlock, FocusInspector& focus, CommandHost& host);
     ~MainWindow();
-    bool Create(HINSTANCE instance, int show_command, std::wstring& error);
-    int Run();
-    void SetFocusInspector(FocusInspector* focus) { focus_ = focus; }
-    void NotifyGhost();
-    void DeliverFocus(FocusSnapshot snapshot);
+
+    bool Create(HINSTANCE instance);
+    void Destroy();
     [[nodiscard]] HWND Handle() const { return hwnd_; }
+    void Show(int tab = -1);               // -1 keeps the current tab
+    void ApplySettings();
+    void EventsChanged();
+    void DeliverFocus(const FocusSnapshot& snapshot) { focus_page_->SetSnapshot(snapshot); }
+    void DeliverTree(const FocusTreeUpdate& update) { focus_page_->ApplyTree(update); }
+    void FocusModeChanged(InspectMode mode) { focus_page_->ModeChanged(mode); }
+    void ShowUnlock(const std::vector<std::wstring>& paths, bool inspect) { OpenUnlock(paths, inspect); }
+    void ShowEvent(std::uint64_t sequence) { OpenGhostEvent(sequence); }
+
+    // Navigator
+    void OpenProcess(const ProcessIdentity& identity) override;
+    void OpenGhostEvent(std::uint64_t sequence) override;
+    void OpenFocusForWindow(HWND hwnd) override;
+    void OpenUnlock(const std::vector<std::wstring>& paths, bool inspect) override;
 
 private:
-    enum class Tab { Ghost, Unlock, Focus };
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
     LRESULT HandleMessage(UINT message, WPARAM wparam, LPARAM lparam);
+    void Select(Tab tab);
+    void LayoutPages();
+    void UpdateAppearance();
     void Paint(HDC dc);
-    void PaintHeader(HDC dc, const RECT& client);
-    void PaintGhost(HDC dc, const RECT& body);
-    void PaintUnlock(HDC dc, const RECT& body);
-    void PaintFocus(HDC dc, const RECT& body);
-    void OnClick(POINT point);
-    void SwitchTo(Tab tab);
-    void ShowMain(Tab tab);
-    void AddTrayIcon();
-    void RemoveTrayIcon();
-    void ShowTrayMenu(POINT point);
-    void HandleCloseRequest();
-    void ShowSettings();
-    void SetCloseBehavior(CloseBehavior behavior);
-    void ChooseFile();
-    void QueryUnlock(const std::wstring& path);
-    void RevealPath(const std::wstring& path);
-    void RevealSelectedProcess();
-    void TerminateSelectedProcess();
-    void ToggleFocus();
-    void UpdateFonts(UINT dpi);
-    static std::wstring FormatTime(const std::chrono::system_clock::time_point& time);
-    std::wstring KindLabel(GhostKind kind) const;
-    [[nodiscard]] const Strings& Texts() const { return GetStrings(); }
-    static std::wstring Elide(const std::wstring& text, std::size_t max);
+    [[nodiscard]] int TabHeight() const;
+    [[nodiscard]] RECT TabRect(int index) const;
+    [[nodiscard]] Page* PageFor(Tab tab) const;
 
-    EventStore& events_;
-    UnlockService& unlock_;
-    IconCache& icons_;
-    FocusInspector* focus_{};
-    OverlayWindow overlay_;
+    CommandHost& host_;
+    PageContext context_;
     HWND hwnd_{};
     HINSTANCE instance_{};
+    UINT dpi_{96};
+    Theme theme_;
     HFONT font_{};
     HFONT font_bold_{};
-    UINT dpi_{96};
-    CloseBehavior close_behavior_{LoadCloseBehavior()};
-    UINT taskbar_created_message_{};
     Tab tab_{Tab::Ghost};
-    std::wstring unlock_path_;
-    std::wstring unlock_error_;
-    std::vector<LockOwner> lock_owners_;
-    int selected_owner_{-1};
-    std::uint64_t expanded_event_{};
-    FocusSnapshot focus_snapshot_{};
-    std::mutex pending_focus_mutex_;
-    std::optional<FocusSnapshot> pending_focus_;
-    bool has_focus_snapshot_{};
-    NOTIFYICONDATAW tray_{};
-    bool tray_added_{};
+    int hover_tab_{-1};
+    std::unique_ptr<GhostPage> ghost_page_;
+    std::unique_ptr<ProcessPage> process_page_;
+    std::unique_ptr<UnlockPage> unlock_page_;
+    std::unique_ptr<FocusPage> focus_page_;
+    std::unique_ptr<SettingsPage> settings_page_;
 };
 
 } // namespace peek

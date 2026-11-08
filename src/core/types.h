@@ -52,10 +52,17 @@ struct WindowInfo {
 struct AutomationInfo {
     bool available{};
     std::wstring automation_id;
-    std::wstring control_type;
+    std::wstring control_type;       // localized control type, e.g. "button"
+    std::wstring class_name;         // UIA ClassName property
+    std::wstring framework;          // UIA FrameworkId, e.g. "Win32", "WPF", "Chrome"
     std::wstring name;
     std::wstring value;
-    RECT bounds{};
+    bool value_available{};          // a value pattern exists and was readable
+    bool value_hidden{};             // the element is a password field; the value is deliberately not read
+    bool enabled{true};
+    bool offscreen{};
+    RECT bounds{};                   // UIA BoundingRectangle in screen pixels; valid only if bounds_valid
+    bool bounds_valid{};
 };
 
 // Raw capture kinds. Several kinds map to one user-facing category.
@@ -95,6 +102,7 @@ struct LockOwner {
     ProcessInfo process;
     std::wstring application_name;
     std::wstring service_name;
+    DWORD app_type{};                // RM_APP_TYPE (3 = service, 4 = Explorer, 1000 = critical)
     DWORD app_status{};
     bool restartable{};
 };
@@ -104,6 +112,23 @@ struct FocusSnapshot {
     ProcessInfo process;
     AutomationInfo automation;
     POINT cursor{};
+    bool has_cursor{};
+    RECT highlight{};                // what the overlay should outline: UIA bounds, else window bounds
+    bool highlight_from_uia{};
+    bool element_alive{true};        // false once a pinned element no longer exists
+};
+
+// One node of the lazily loaded UI Automation hierarchy shown in the Focus tab.
+struct UiaNode {
+    int id{};
+    int parent{-1};
+    std::wstring name;
+    std::wstring control_type;
+    std::wstring automation_id;
+    std::wstring class_name;
+    RECT bounds{};
+    bool has_children{true};         // unknown until expanded; assume true so an expander is shown
+    bool is_selected{};              // the element that is being inspected
 };
 
 } // namespace peek

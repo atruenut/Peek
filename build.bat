@@ -88,7 +88,7 @@ if "%FAILED%"=="1" (
 
 echo Linking...
 "%CXX%" -municode -mwindows -static -static-libgcc -static-libstdc++ %LINKOPT% !OBJECTS! "%OUT%\obj\peek_res.o" -o "%OUT%\Peek.exe" ^
-    -lcomctl32 -ldwmapi -lole32 -loleaut32 -lshell32 -lshlwapi -lcomdlg32 -lrstrtmgr -lwbemuuid -lpsapi -ladvapi32 -lgdi32 -luser32 -luuid -luxtheme
+    -lcomctl32 -ldwmapi -lole32 -loleaut32 -lshell32 -lshlwapi -lcomdlg32 -lrstrtmgr -lwbemuuid -lpsapi -ladvapi32 -lgdi32 -luser32 -luuid -luxtheme -lshcore -lcomdlg32 -luuid
 if errorlevel 1 (
     echo Link failed.
     exit /b 1

@@ -40,7 +40,6 @@ constexpr EnumNames<FullscreenBehavior, 2> kFullscreen{{{FullscreenBehavior::Hid
 constexpr EnumNames<TraceMode, 4> kTrace{{{TraceMode::Off, "off"}, {TraceMode::Seconds30, "30s"},
                                           {TraceMode::Minutes5, "5m"}, {TraceMode::Continuous, "continuous"}}};
 constexpr EnumNames<StateFilter, 3> kState{{{StateFilter::Any, "any"}, {StateFilter::Running, "running"}, {StateFilter::Terminated, "terminated"}}};
-constexpr EnumNames<FocusState, 3> kFocusState{{{FocusState::Live, "live"}, {FocusState::Frozen, "frozen"}, {FocusState::Pinned, "pinned"}}};
 
 bool ReadBool(const IniFile& ini, const char* section, const char* key, bool fallback) {
     if (!ini.Has(section, key)) return fallback;
@@ -137,6 +136,7 @@ void LoadFromIni(const IniFile& ini, Settings& s) {
     s.ghost.retention = ReadInt(ini, "Ghost", "Retention", s.ghost.retention);
     s.ghost.trace = kTrace.Parse(ini.Get("Ghost", "Trace"), s.ghost.trace);
     s.ghost.ignore_noise = ReadBool(ini, "Ghost", "IgnoreNoiseWindows", s.ghost.ignore_noise);
+    s.ghost.group_lifecycle = ReadBool(ini, "Ghost", "GroupByLifecycle", s.ghost.group_lifecycle);
     if (ini.Has("Ghost", "FilterText")) s.ghost.filter_text = ini.Get("Ghost", "FilterText");
     s.ghost.filter_categories = static_cast<std::uint32_t>(std::max(0, ReadInt(ini, "Ghost", "FilterCategories", static_cast<int>(s.ghost.filter_categories))));
     s.ghost.filter_state = kState.Parse(ini.Get("Ghost", "FilterState"), s.ghost.filter_state);
@@ -150,8 +150,6 @@ void LoadFromIni(const IniFile& ini, Settings& s) {
     if (ini.Has("Focus", "HighlightColor")) s.focus.highlight_color = ini.Get("Focus", "HighlightColor");
     s.focus.highlight_width = ReadInt(ini, "Focus", "HighlightWidth", s.focus.highlight_width);
     s.focus.highlight_duration_ms = ReadInt(ini, "Focus", "HighlightDurationMs", s.focus.highlight_duration_ms);
-    s.focus.state = kFocusState.Parse(ini.Get("Focus", "State"), s.focus.state);
-    s.focus.mouse_gesture = ReadBool(ini, "Focus", "MouseGesture", s.focus.mouse_gesture);
 
     auto shortcut = [&](const char* name, ShortcutSetting& target) {
         target.enabled = ReadBool(ini, "Shortcuts", (std::string(name) + "Enabled").c_str(), target.enabled);
@@ -186,6 +184,7 @@ IniFile ToIni(const Settings& s) {
     ini.Set("Ghost", "Retention", std::to_string(s.ghost.retention));
     ini.Set("Ghost", "Trace", kTrace.Name(s.ghost.trace));
     ini.Set("Ghost", "IgnoreNoiseWindows", Bool(s.ghost.ignore_noise));
+    ini.Set("Ghost", "GroupByLifecycle", Bool(s.ghost.group_lifecycle));
     ini.Set("Ghost", "FilterText", s.ghost.filter_text);
     ini.Set("Ghost", "FilterCategories", std::to_string(s.ghost.filter_categories));
     ini.Set("Ghost", "FilterState", kState.Name(s.ghost.filter_state));
@@ -199,8 +198,6 @@ IniFile ToIni(const Settings& s) {
     ini.Set("Focus", "HighlightColor", s.focus.highlight_color);
     ini.Set("Focus", "HighlightWidth", std::to_string(s.focus.highlight_width));
     ini.Set("Focus", "HighlightDurationMs", std::to_string(s.focus.highlight_duration_ms));
-    ini.Set("Focus", "State", kFocusState.Name(s.focus.state));
-    ini.Set("Focus", "MouseGesture", Bool(s.focus.mouse_gesture));
 
     ini.Set("Shortcuts", "ActivateEnabled", Bool(s.shortcuts.activate.enabled));
     ini.Set("Shortcuts", "Activate", s.shortcuts.activate.key);

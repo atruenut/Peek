@@ -67,7 +67,7 @@ static void SettingsTests() {
     CHECK(!defaults.shortcuts.activate.enabled);     // shortcuts must be off by default
     CHECK(!defaults.shortcuts.ghost.enabled);
     CHECK(!defaults.shortcuts.focus.enabled);
-    CHECK(!defaults.focus.mouse_gesture);            // optional gesture must be off by default
+    CHECK(!defaults.ghost.group_lifecycle);
     CHECK(defaults.hud.visible);
 
     // Round trip.

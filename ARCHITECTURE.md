@@ -1,63 +1,44 @@
 # Peek architecture
 
-## Product boundary
+Read [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md) for the audit and decisions, [docs/DEVLOG.md](docs/DEVLOG.md) for status.
 
-Peek is a question-and-answer utility, not a general task manager or log viewer. Data is bounded in memory, primary actions fit in one window, and every module reuses the same process/window models.
+## Layers
 
-## Components
+```
+src/core    types, settings (INI), event store, process resolver, investigation model, strings, helpers
+src/ghost   GhostMonitor: capture only, no UI
+src/unlock  UnlockService: Restart Manager, bounded folder scan, grouping, polite close
+src/focus   FocusInspector (UI Automation worker), copy formatters
+src/shell   ShellIntegration: per-user Explorer verbs
+src/ui      HudWindow, OverlayWindow (Focus frame), MainWindow + pages (Ghost, Process, Unlock, Focus, Settings)
+src/app.*   composition root, tray, shortcuts, single instance, settings -> behaviour
+```
 
-| Component | Responsibility | Windows API |
+UI code never calls capture code directly except through `CommandHost` (actions) and shared read-only services.
+`Navigator` lets pages jump to each other, which is what ties Ghost, Unlock and Focus together: every surface
+resolves to a `ProcessIdentity` (PID + creation time) and `DescribeProcess()` produces the same facts for all of them.
+
+## Threads
+
+| Thread | Owns | Talks to UI by |
 | --- | --- | --- |
-| `ProcessResolver` | Resolve PID to name, image path, command line, parent and icon source | Toolhelp, `OpenProcess`, `QueryFullProcessImageName`, WMI fallback |
-| `EventStore` | Thread-safe bounded event history and process start/stop correlation | Standard C++ only |
-| `GhostMonitor` | Capture process lifecycle and desktop window events | WMI `Win32_ProcessStartTrace` / `StopTrace`, `SetWinEventHook` |
-| `UnlockService` | Find processes registered as users of a selected file | Restart Manager |
-| `FocusInspector` | Inspect the pointer target and UIA element | `WindowFromPoint`, UI Automation |
-| `IconCache` | Cache small process icons by executable path | Shell image extraction |
-| `PrivilegeHelper` | Centralize access checks and safe process actions | process tokens, `TerminateProcess` |
-| `MainWindow` | Tray, hotkeys, cards, tabs and shared process details | Win32, GDI, DWM |
-| `OverlayWindow` | Non-activating inspection highlight | layered topmost Win32 window |
+| UI (STA) | all windows, tray, hotkeys, settings writes | - |
+| Ghost window thread | WinEvent hooks (out-of-context callbacks run on the installing thread) | one coalesced posted message |
+| Ghost WMI thread (MTA) | WMI notification query | same |
+| Ghost poll thread | only when WMI is unavailable | same |
+| Focus worker (MTA) | **all** UI Automation objects | latest-snapshot slot + queued tree updates + posted message |
+| Unlock worker | one investigation at a time (per page) | result slot + posted message |
 
-## Event flow
+`EventStore` and `SettingsManager` are mutex protected. Shutdown order: stop Focus and Ghost, destroy overlay/HUD/window, remove tray.
 
-Ghost owns two capture sources. WMI callbacks enqueue process start/stop records. WinEvent callbacks immediately snapshot title, rectangle and PID because the originating window may already be gone. `EventStore` merges a stop event with a matching start event to compute lifetime and retains the newest 100 records. UI refresh is posted to the main window so capture threads never paint or block on presentation.
+## Monitoring is independent of windows
 
-## Reliability choices
+`GhostMonitor` writes to `EventStore` whether or not the HUD, tray or window exist. Pausing is a setting
+(`Ghost.Enabled`), not a side effect of hiding anything. The 1.5 s HUD timer only runs while the HUD is enabled
+(fullscreen check and "still running" refresh); the 1 s status tick only runs during a timed Trace.
 
-### Ghost
+## Security and privacy posture
 
-The first version prefers WMI trace event classes because polling can never guarantee seeing a process whose entire lifetime falls between samples. The process event itself contains PID, name and parent PID; full path and command line are enrichment and therefore explicitly best-effort. Some managed Windows installations deny the event subscription to standard users (`WBEM_E_ACCESS_DENIED`), so Peek degrades to a low-cost 250 ms `EnumProcesses` PID snapshot rather than disabling Ghost entirely. Only newly observed PIDs receive the more expensive path and parent enrichment, and the capture thread intentionally avoids synchronous WMI command-line queries. A headless process can still escape if its entire lifetime falls between samples. Window observation remains event-driven through an out-of-context hook, so visible flashes are still captured without injecting a DLL into other applications.
-
-### Unlock
-
-Restart Manager is used because Windows maintains the affected-application relationship and returns stable process identity (`PID` plus process start time). The first version intentionally omits remote handle closure and calls neither `RmShutdown` nor native handle-duplication APIs. Termination is an explicit, confirmed action against the selected PID.
-
-### Focus
-
-Win32 supplies the HWND/class/title/process boundary. UI Automation supplies framework-neutral control metadata for Win32, Chromium and other accessibility providers. UIA calls run on the inspection worker thread, and unavailable/transient elements fail soft.
-
-## Threading
-
-- UI/tray/hotkeys: primary STA thread.
-- WMI process watcher: dedicated MTA worker with a blocking notification enumerator.
-- Focus sampling/UIA: dedicated MTA worker, activated only during inspect mode.
-- WinEvent callbacks: system callback threads; snapshot and enqueue only.
-
-Shared state uses short mutex sections. Shutdown sets stop events, cancels blocking WMI calls by releasing the enumerator, unhooks WinEvent, joins workers, then destroys UI resources.
-
-## Resource and security posture
-
-- No background timer while idle except active Focus sampling.
-- Exactly 100 Ghost records by default.
-- Icons are lazily loaded and bounded.
-- No automatic elevation and no debug privilege enablement.
-- Protected/elevated processes may expose partial information.
-- No captured process, file, window or UI Automation data is persisted. Only the selected UI language and close-button behavior are stored for the current Windows user.
-
-## Official references
-
-- [Restart Manager functions](https://learn.microsoft.com/windows/win32/rstmgr/functions)
-- [RmGetList](https://learn.microsoft.com/windows/win32/api/restartmanager/nf-restartmanager-rmgetlist)
-- [SetWinEventHook](https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwineventhook)
-- [Win32_ProcessStartTrace](https://learn.microsoft.com/previous-versions/windows/desktop/krnlprov/win32-processstarttrace)
-- [UI Automation ElementFromPoint](https://learn.microsoft.com/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-elementfrompoint)
+No network, no telemetry, no automatic elevation, no debug privilege. Captured data stays in memory; only
+settings are written (Peek.ini). Password-field values are never read by Focus. Termination requires an explicit
+confirmation and re-checks PID + creation time; services, Explorer and critical processes are not offered.

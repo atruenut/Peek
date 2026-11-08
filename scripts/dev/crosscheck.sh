@@ -23,5 +23,5 @@ while IFS= read -r f; do
   OBJS+=("$o")
 done < <(find src -name '*.cpp' | sort)
 "$CXX" -municode -mwindows -static -static-libgcc -static-libstdc++ "${LINKOPT[@]}" "${OBJS[@]}" "$OUT/obj/peek_res.o" -o "$OUT/Peek.exe" \
-  -lcomctl32 -ldwmapi -lole32 -loleaut32 -lshell32 -lshlwapi -lcomdlg32 -lrstrtmgr -lwbemuuid -lpsapi -ladvapi32 -lgdi32 -luser32 -luuid -luxtheme
+  -lcomctl32 -ldwmapi -lole32 -loleaut32 -lshell32 -lshlwapi -lcomdlg32 -lrstrtmgr -lwbemuuid -lpsapi -ladvapi32 -lgdi32 -luser32 -luuid -luxtheme -lshcore -lcomdlg32 -luuid
 echo "Built $OUT/Peek.exe ($(stat -c %s "$OUT/Peek.exe") bytes)"

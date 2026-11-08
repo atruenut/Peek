@@ -53,6 +53,7 @@ inline constexpr wchar_t kMenuExit[] = L"Exit Peek";
 
 // Investigation window.
 inline constexpr wchar_t kTabGhost[] = L"Ghost";
+inline constexpr wchar_t kTabProcess[] = L"Process";
 inline constexpr wchar_t kTabUnlock[] = L"Unlock";
 inline constexpr wchar_t kTabFocus[] = L"Focus";
 inline constexpr wchar_t kTabSettings[] = L"Settings";
@@ -83,12 +84,29 @@ inline constexpr wchar_t kBtnDismiss[] = L"Dismiss";
 inline constexpr wchar_t kBtnPauseMonitoring[] = L"Pause monitoring";
 inline constexpr wchar_t kBtnResumeMonitoring[] = L"Resume monitoring";
 inline constexpr wchar_t kBtnCommandLine[] = L"Load command line";
+inline constexpr wchar_t kGroupByLifecycle[] = L"Group by process lifetime";
+inline constexpr wchar_t kBtnProcessDetails[] = L"Process details";
+inline constexpr wchar_t kBtnInspectWindow[] = L"Inspect window (Focus)";
+inline constexpr wchar_t kProcessIntro[] = L"No process selected. Double-click an event in Ghost, a result in Unlock, or use \"Process details\".";
+inline constexpr wchar_t kBtnBack[] = L"Back";
+inline constexpr wchar_t kBtnRefresh[] = L"Refresh";
+inline constexpr wchar_t kBtnShowWindow[] = L"Show window";
+inline constexpr wchar_t kBtnShowInGhost[] = L"Show events in Ghost";
+inline constexpr wchar_t kColRelation[] = L"Relation";
 inline constexpr wchar_t kNoSelection[] = L"Select an event to see details.";
 
 // Unlock.
 inline constexpr wchar_t kUnlockIntro[] = L"Choose or drop a file to see which applications are using it.";
+inline constexpr wchar_t kBtnAddFiles[] = L"Add files\u2026";
+inline constexpr wchar_t kBtnAddFolder[] = L"Add folder\u2026";
+inline constexpr wchar_t kBtnAskClose[] = L"Ask to close";
+inline constexpr wchar_t kChecking[] = L"Checking\u2026";
+inline constexpr wchar_t kColFiles[] = L"Files";
+inline constexpr wchar_t kColType[] = L"Type";
+inline constexpr wchar_t kUnlockEmpty[] = L"Nothing investigated yet. Add files or folders, drop them here, or right-click a file in Explorer.";
+inline constexpr wchar_t kProtectedNote[] = L"This is a Windows service, Windows Explorer or a critical system process. Peek does not offer to close or end it.";
 inline constexpr wchar_t kBtnChooseFile[] = L"Choose file…";
-inline constexpr wchar_t kBtnInvestigate[] = L"Investigate";
+inline constexpr wchar_t kBtnInvestigate[] = L"Check again";
 inline constexpr wchar_t kBtnEndProcess[] = L"End process…";
 inline constexpr wchar_t kNoLockOwner[] = L"No application reported using this file.";
 inline constexpr wchar_t kOwnersFound[] = L"application(s) using this file";
@@ -100,7 +118,14 @@ inline constexpr wchar_t kTerminateQuestion[] = L"End this process?";
 inline constexpr wchar_t kUnsavedWarning[] = L"Unsaved work in that process may be lost. Try closing the application normally first.";
 
 // Focus.
-inline constexpr wchar_t kFocusIntro[] = L"Inspect the window or control under the pointer. Press Esc to stop.";
+inline constexpr wchar_t kFocusIntro[] = L"Live follows the pointer; hold Shift to hold the target, Esc stops. Peek's own windows are never inspected, so you can move onto Peek and press Freeze or Pin.";
+inline constexpr wchar_t kBtnFreeze[] = L"Freeze";
+inline constexpr wchar_t kBtnResume[] = L"Resume (live)";
+inline constexpr wchar_t kBtnPin[] = L"Pin";
+inline constexpr wchar_t kBtnUnpin[] = L"Unpin (live)";
+inline constexpr wchar_t kBtnCopyText[] = L"Copy text";
+inline constexpr wchar_t kBtnCopyJson[] = L"Copy JSON";
+inline constexpr wchar_t kBtnCopyC[] = L"Copy C struct";
 inline constexpr wchar_t kBtnStartInspect[] = L"Start inspecting";
 inline constexpr wchar_t kBtnStopInspect[] = L"Stop inspecting";
 inline constexpr wchar_t kFocusMovePointer[] = L"Move the pointer over a window or control.";
@@ -118,6 +143,9 @@ inline constexpr wchar_t kPropAutomationId[] = L"AutomationId";
 inline constexpr wchar_t kPropValue[] = L"Value";
 inline constexpr wchar_t kPropUiaBounds[] = L"UIA bounds";
 inline constexpr wchar_t kPropCursor[] = L"Cursor";
+inline constexpr wchar_t kPropUiaClass[] = L"UIA class name";
+inline constexpr wchar_t kPropFramework[] = L"UI framework";
+inline constexpr wchar_t kValueHidden[] = L"(hidden: password field)";
 
 // Settings.
 inline constexpr wchar_t kSetHudSection[] = L"Desktop HUD";
@@ -165,6 +193,15 @@ inline constexpr wchar_t kSetCloseExit[] = L"Exit Peek";
 inline constexpr wchar_t kSetStartWithWindow[] = L"Open the Peek window at startup";
 inline constexpr wchar_t kSetConfigFile[] = L"Settings file";
 inline constexpr wchar_t kSetOpenFolder[] = L"Open folder";
+inline constexpr wchar_t kSetUnlockSection[] = L"Unlock and Explorer";
+inline constexpr wchar_t kSetRegisterShell[] = L"Add Explorer menu entries";
+inline constexpr wchar_t kSetUnregisterShell[] = L"Remove entries";
+inline constexpr wchar_t kShellNotRegistered[] = L"Explorer menu entries are not installed.";
+inline constexpr wchar_t kShellRegistered[] = L"Explorer menu entries are installed (right-click a file; on Windows 11 choose \"Show more options\").";
+inline constexpr wchar_t kShellOtherExe[] = L"Entries exist but point to another copy of Peek: ";
+inline constexpr wchar_t kSetDepth[] = L"Folder scan depth";
+inline constexpr wchar_t kSetMaxFiles[] = L"Maximum files per scan";
+inline constexpr wchar_t kSetHighlightDuration[] = L"Highlight duration (ms, 0 = keep)";
 inline constexpr wchar_t kSetShortcutOk[] = L"registered";
 inline constexpr wchar_t kSetShortcutOff[] = L"off";
 inline constexpr wchar_t kSetShortcutInvalid[] = L"not a valid shortcut";

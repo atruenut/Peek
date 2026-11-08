@@ -1,0 +1,229 @@
+#include "ui/page.h"
+
+#include <uxtheme.h>
+#include <windowsx.h>
+
+namespace peek {
+namespace {
+constexpr wchar_t kPageClass[] = L"Peek.Page";
+}
+
+bool Page::Create(HWND parent, HINSTANCE instance) {
+    instance_ = instance;
+    WNDCLASSEXW wc{};
+    wc.cbSize = sizeof(wc);
+    wc.lpfnWndProc = PageProc;
+    wc.hInstance = instance;
+    wc.lpszClassName = kPageClass;
+    wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
+    hwnd_ = CreateWindowExW(WS_EX_CONTROLPARENT, kPageClass, L"", WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+                            0, 0, 10, 10, parent, nullptr, instance, this);
+    return hwnd_ != nullptr;
+}
+
+void Page::Place(const RECT& area, bool visible) {
+    if (!hwnd_) return;
+    SetWindowPos(hwnd_, nullptr, area.left, area.top, area.right - area.left, area.bottom - area.top,
+                 SWP_NOZORDER | SWP_NOACTIVATE | (visible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+}
+
+void Page::SetAppearance(const Theme& theme, UINT dpi, HFONT font) {
+    theme_ = theme;
+    dpi_ = dpi;
+    font_ = font;
+    if (background_brush_) DeleteObject(background_brush_);
+    if (surface_brush_) DeleteObject(surface_brush_);
+    background_brush_ = CreateSolidBrush(theme_.background);
+    surface_brush_ = CreateSolidBrush(theme_.surface);
+    if (!hwnd_) return;
+    RestyleChildren();
+    OnAppearance();
+    RECT client{};
+    GetClientRect(hwnd_, &client);
+    OnLayout(client.right, client.bottom);
+    InvalidateRect(hwnd_, nullptr, TRUE);
+}
+
+void Page::RestyleChildren() {
+    EnumChildWindows(hwnd_, [](HWND child, LPARAM font) -> BOOL {
+        SendMessageW(child, WM_SETFONT, static_cast<WPARAM>(font), TRUE);
+        return TRUE;
+    }, reinterpret_cast<LPARAM>(font_));
+    for (auto& [control, kind] : styled_) StyleControl(control, kind);
+}
+
+HWND Page::Track(HWND control) {
+    if (control) {
+        SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font_), FALSE);
+    }
+    return control;
+}
+
+void Page::StyleControl(HWND control, const wchar_t* kind) {
+    // Native controls follow the dark theme through the undocumented-but-stable "DarkMode_*" visual styles
+    // (Windows 10 1903+). On older builds the call fails harmlessly and the control stays light.
+    const wchar_t* style = theme_.dark ? kind : L"Explorer";
+    if (!theme_.dark && lstrcmpW(kind, L"CFD") == 0) style = nullptr;
+    if (theme_.dark) {
+        std::wstring name = lstrcmpW(kind, L"CFD") == 0 ? L"DarkMode_CFD" : L"DarkMode_Explorer";
+        SetWindowTheme(control, name.c_str(), nullptr);
+    } else {
+        SetWindowTheme(control, style, nullptr);
+    }
+    if (kind && lstrcmpW(kind, L"LIST") == 0) {
+        ListView_SetBkColor(control, theme_.surface);
+        ListView_SetTextBkColor(control, theme_.surface);
+        ListView_SetTextColor(control, theme_.text);
+    } else if (kind && lstrcmpW(kind, L"TREE") == 0) {
+        TreeView_SetBkColor(control, theme_.surface);
+        TreeView_SetTextColor(control, theme_.text);
+    }
+}
+
+HWND Page::MakeLabel(const wchar_t* text, DWORD extra_style) {
+    return Track(CreateWindowExW(0, L"STATIC", text, WS_CHILD | WS_VISIBLE | SS_NOPREFIX | extra_style, 0, 0, 10, 10,
+                                 hwnd_, nullptr, instance_, nullptr));
+}
+
+HWND Page::MakeButton(const wchar_t* text, int id, DWORD extra_style) {
+    HWND button = Track(CreateWindowExW(0, L"BUTTON", text, WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | extra_style,
+                                        0, 0, 10, 10, hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    styled_.emplace_back(button, L"Explorer");
+    return button;
+}
+
+HWND Page::MakeCheck(const wchar_t* text, int id) {
+    HWND check = Track(CreateWindowExW(0, L"BUTTON", text, WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 0, 0, 10, 10,
+                                       hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    styled_.emplace_back(check, L"Explorer");
+    return check;
+}
+
+HWND Page::MakeEdit(int id, DWORD extra_style) {
+    HWND edit = Track(CreateWindowExW(0, L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL | extra_style, 0, 0, 10, 10,
+                                      hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    styled_.emplace_back(edit, L"CFD");
+    return edit;
+}
+
+HWND Page::MakeCombo(int id) {
+    HWND combo = Track(CreateWindowExW(0, L"COMBOBOX", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL,
+                                       0, 0, 10, 200, hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    styled_.emplace_back(combo, L"CFD");
+    return combo;
+}
+
+HWND Page::MakeList(int id, DWORD extra_style) {
+    HWND list = Track(CreateWindowExW(WS_EX_CLIENTEDGE, WC_LISTVIEWW, L"",
+                                      WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | extra_style,
+                                      0, 0, 10, 10, hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
+    styled_.emplace_back(list, L"LIST");
+    return list;
+}
+
+HWND Page::MakeTree(int id) {
+    HWND tree = Track(CreateWindowExW(WS_EX_CLIENTEDGE, WC_TREEVIEWW, L"",
+                                      WS_CHILD | WS_VISIBLE | WS_TABSTOP | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT |
+                                          TVS_SHOWSELALWAYS | TVS_DISABLEDRAGDROP,
+                                      0, 0, 10, 10, hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    styled_.emplace_back(tree, L"TREE");
+    return tree;
+}
+
+HWND Page::MakeText(int id) {
+    HWND text = Track(CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
+                                      WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
+                                      0, 0, 10, 10, hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
+    styled_.emplace_back(text, L"CFD");
+    return text;
+}
+
+void Page::AddColumn(HWND list, int index, const wchar_t* title, int width_dips, int format) {
+    LVCOLUMNW column{};
+    column.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_SUBITEM;
+    column.pszText = const_cast<wchar_t*>(title);
+    column.cx = Px(width_dips);
+    column.fmt = format;
+    column.iSubItem = index;
+    ListView_InsertColumn(list, index, &column);
+}
+
+void Page::FillCombo(HWND combo, std::initializer_list<const wchar_t*> items, int selected) {
+    SendMessageW(combo, CB_RESETCONTENT, 0, 0);
+    for (const wchar_t* item : items) SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(item));
+    SendMessageW(combo, CB_SETCURSEL, static_cast<WPARAM>(selected), 0);
+}
+
+void Page::SetText(HWND control, const std::wstring& text) { SetWindowTextW(control, text.c_str()); }
+
+std::wstring Page::GetText(HWND control) const {
+    const int length = GetWindowTextLengthW(control);
+    std::wstring text(static_cast<std::size_t>(length) + 1, L'\0');
+    const int copied = GetWindowTextW(control, text.data(), length + 1);
+    text.resize(static_cast<std::size_t>(std::max(0, copied)));
+    return text;
+}
+
+LRESULT CALLBACK Page::PageProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
+    Page* self = nullptr;
+    if (message == WM_NCCREATE) {
+        self = static_cast<Page*>(reinterpret_cast<CREATESTRUCTW*>(lparam)->lpCreateParams);
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        if (self) self->hwnd_ = hwnd;
+    } else {
+        self = reinterpret_cast<Page*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    }
+    if (!self) return DefWindowProcW(hwnd, message, wparam, lparam);
+    return self->Handle(message, wparam, lparam);
+}
+
+LRESULT Page::Handle(UINT message, WPARAM wparam, LPARAM lparam) {
+    switch (message) {
+        case WM_CREATE:
+            OnCreate();
+            return 0;
+        case WM_SIZE:
+            OnLayout(LOWORD(lparam), HIWORD(lparam));
+            return 0;
+        case WM_COMMAND:
+            OnCommand(LOWORD(wparam), HIWORD(wparam), reinterpret_cast<HWND>(lparam));
+            return 0;
+        case WM_NOTIFY:
+            return OnNotify(reinterpret_cast<NMHDR*>(lparam));
+        case WM_ERASEBKGND: {
+            RECT rect{};
+            GetClientRect(hwnd_, &rect);
+            FillRect(reinterpret_cast<HDC>(wparam), &rect, background_brush_ ? background_brush_ : reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1));
+            return 1;
+        }
+        case WM_CTLCOLORSTATIC:
+        case WM_CTLCOLORBTN: {
+            HDC dc = reinterpret_cast<HDC>(wparam);
+            SetTextColor(dc, theme_.text);
+            SetBkColor(dc, theme_.background);
+            return reinterpret_cast<LRESULT>(background_brush_);
+        }
+        case WM_CTLCOLOREDIT:
+        case WM_CTLCOLORLISTBOX: {
+            HDC dc = reinterpret_cast<HDC>(wparam);
+            SetTextColor(dc, theme_.text);
+            SetBkColor(dc, theme_.surface);
+            return reinterpret_cast<LRESULT>(surface_brush_);
+        }
+        case WM_DESTROY:
+            if (background_brush_) { DeleteObject(background_brush_); background_brush_ = nullptr; }
+            if (surface_brush_) { DeleteObject(surface_brush_); surface_brush_ = nullptr; }
+            break;
+        default:
+            if (message >= WM_APP && message < 0xC000) {
+                if (HandleAppMessage(message, wparam, lparam)) return 0;
+            }
+            OnMessage(message, wparam, lparam);
+            break;
+    }
+    return DefWindowProcW(hwnd_, message, wparam, lparam);
+}
+
+} // namespace peek

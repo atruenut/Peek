@@ -1,409 +1,185 @@
-<a id="top"></a>
-
-<div align="center">
-
-<img src="docs/images/peek-icon.png" width="112" height="112" alt="Peek icon">
-
 # Peek
 
-### 三个问题，一个极小的 Windows 工具
+Peek is a small, native Windows utility that makes processes, windows, files and interface elements
+visible without getting in your way. It runs quietly in the tray, shows a narrow always-on-top activity
+panel (the HUD), and opens a normal window only when you want to dig deeper.
 
-**刚才闪过去的是什么？ · 谁占用了这个文件？ · 鼠标下面是什么控件？**
+It is a fork of [HaBaDEDE/Peek](https://github.com/HaBaDEDE/Peek), redesigned around a persistent HUD,
+Explorer integration and optional shortcuts. MIT licensed.
 
-`原生 Win32`　`单文件 EXE`　`离线运行`　`无账户`　`无遥测`　`中英双语`
+> **Status: untested on Windows.** This version was written and cross-compiled on Linux. It builds and
+> links with MinGW-w64, and the portable parts (INI, hotkey parsing, settings) have unit tests, but
+> nothing that touches Windows (HUD, tray, Explorer menu, WMI, UI Automation) has been run yet.
+> [docs/DEVLOG.md](docs/DEVLOG.md) lists exactly what to verify and what is most likely to need fixing.
 
-[![Release](https://img.shields.io/github/v/release/HaBaDEDE/Peek?style=flat-square)](https://github.com/HaBaDEDE/Peek/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/HaBaDEDE/Peek/total?style=flat-square)](https://github.com/HaBaDEDE/Peek/releases)
-[![License: MIT](https://img.shields.io/github/license/HaBaDEDE/Peek?style=flat-square)](LICENSE)
-![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows)
+## What it does
 
-**[官方网站 / Official website](https://habadede.github.io/Peek/)**
+**Ghost** - what just appeared and disappeared?
+- Records process started / exited and window appeared / disappeared events. A process can own many
+  windows and windows can vanish before their process, so these are separate event types.
+- Events stay in a persistent list until newer events push them out (retention 100 / 500 / 2,000 or your
+  own value in `Peek.ini`) or you dismiss them. Nothing flashes and disappears.
+- Filter by text (process name, path, command line, window title), event type, running/ended, and age.
+  Optionally group events by process lifetime. Process identity is PID **plus** creation time, so a reused
+  PID is never confused with the original process.
+- Uses WMI process trace events (with a polling fallback if WMI is denied) and WinEvent hooks for windows.
+  An optional **Trace** mode (30 s, 5 min or continuous) records extra detail such as raw window create
+  events and command lines. ETW is not implemented yet.
 
-[简体中文](#readme-zh) · [English](#readme-en)
+**Process** - everything about one process
+- PID, parent, executable, command line (on request), start time, status, running children, visible
+  windows and the Ghost events that mention it. Double-click a parent or child to navigate.
 
-**[下载最新版本](https://github.com/HaBaDEDE/Peek/releases/latest/download/Peek.exe) · [Download latest release](https://github.com/HaBaDEDE/Peek/releases/latest/download/Peek.exe)**
+**Unlock** - who is using this file?
+- Add several files or folders, drop them on the window, or use the Explorer menu. Results are grouped by
+  process, using the Windows Restart Manager.
+- Folder scans respect a depth and a file-count limit (Settings).
+- Graduated workflow: identify -> process details -> show its window -> **ask it to close** (normal
+  `WM_CLOSE`) -> **end process** (confirmed, last resort). Services, Explorer and critical system
+  processes are never offered for closing or ending. Nothing is closed automatically and no handles are
+  force-closed.
 
-当前版本：`v0.1.0`
+**Focus** - what is under the pointer?
+- Shows HWND, window class and title, PID, executable, and UI Automation AutomationId, ControlType, Name,
+  Value and bounds. Password field values are never read.
+- **Live** follows the pointer (hold Shift to hold the target; Esc stops). **Frozen** keeps the selection.
+  **Pinned** keeps it and tracks its position while you use other applications. The state is shown in the tab.
+- A click-through highlight frame follows the element's UI Automation bounds (falls back to the window),
+  with configurable color, width and duration. Peek's own windows are never inspected.
+- Expandable UI Automation hierarchy; copy as plain text, JSON or a C struct.
+- Not every application exposes UI Automation data (custom-drawn, protected or elevated windows may be
+  partial). Missing properties are shown as "unavailable", not guessed.
 
-</div>
+## Interaction model
 
----
+1. **HUD** - narrow, non-activating overlay (`WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST`):
+   no taskbar button, no Alt+Tab entry, never takes focus. Compact and expanded modes, any screen corner of
+   any monitor, DPI aware, hides while a fullscreen app is active (configurable). Drag the header to move
+   it, double-click the header to switch mode, right-click for a menu, use the header buttons to pause
+   monitoring or hide the HUD. Hiding the HUD does not stop monitoring.
+2. **Tray icon** - open the window, toggle HUD, pause monitoring, choose Trace mode, start Focus, Exit.
+3. **Investigation window** - the tabs above. Closing it hides it (or exits, see Settings).
 
-![Peek: Ghost, Unlock and Focus](docs/images/peek-overview.png)
+Global shortcuts are **off by default**, configurable per shortcut, with conflict detection. Peek uses no
+keyboard or mouse hooks.
 
-<div align="center">
-<img src="docs/images/peek-demo-hd.gif" width="960" alt="Peek feature demo">
-</div>
+## Requirements
 
----
+- Windows 10 or Windows 11 (x64). Windows on ARM: see Build.
+- No installer, no runtime, no network access, no telemetry, no accounts.
 
-<a id="readme-zh"></a>
+## Build
 
-## 简体中文
+You need a MinGW-w64 GCC/G++ (for example [MSYS2](https://www.msys2.org) with `mingw-w64-x86_64-gcc`) on `PATH`.
 
-Peek 是一个轻量、快速的 Windows 系统观察工具。它不是任务管理器，也不试图取代 PowerToys；它只专注于三个日常中很难立刻回答的问题。
-
-| 功能 | 它回答的问题 | 适合什么时候使用 |
-| --- | --- | --- |
-| **闪现 Ghost** | 刚才一闪而过的窗口或程序是什么？ | 黑框、PowerShell、安装器或更新程序突然出现又消失 |
-| **解锁 Unlock** | 谁正在占用这个文件？ | 文件无法删除、移动、重命名或覆盖 |
-| **探查 Focus** | 鼠标下面的 Windows UI 到底是什么？ | 想知道窗口、按钮、输入框属于哪个程序或控件 |
-
-### 为什么是 Peek
-
-- **极小而直接**：三个功能集中在一个约 `420 × 540` 的窗口中，没有欢迎页、侧边栏和复杂设置中心。
-- **真正原生**：使用 C++20、Win32 API 和 Windows 系统组件，不使用 Electron、WebView、Qt 或 .NET Runtime。
-- **默认离线**：没有账户、联网、云同步、在线数据库或遥测。
-- **随时可用**：常驻系统托盘，通过全局快捷键快速打开，不需要事先配置。
-- **中英双语**：首次启动跟随 Windows 显示语言，此后记住手动选择的语言。
-
-## 下载和启动
-
-推荐从 [GitHub Releases](https://github.com/HaBaDEDE/Peek/releases/latest) 下载正式的 Windows x64 版本：
-
-**[直接下载 Peek.exe](https://github.com/HaBaDEDE/Peek/releases/latest/download/Peek.exe)**
-
-也可以通过 Scoop 自托管 bucket 安装和更新：
-
-```powershell
-scoop bucket add peek https://github.com/HaBaDEDE/Peek
-scoop install peek
+```bat
+build.bat                :: x64 release  -> build\x64\Peek.exe
+build.bat x64 debug
+build.bat arm64          :: needs aarch64-w64-mingw32-g++ (llvm-mingw); not verified
+test.bat                 :: builds if needed, runs the built-in self-test on Windows
+clean.bat
 ```
 
-校验文件：[SHA256SUMS.txt](https://github.com/HaBaDEDE/Peek/releases/latest/download/SHA256SUMS.txt)
+On Linux or macOS, `scripts/dev/crosscheck.sh` cross-compiles to catch build errors and `tests/run.sh`
+runs the portable unit tests. Neither runs the program.
 
-仓库中的 [dist/Peek.exe](dist/Peek.exe) 与当前源码版本对应，也可以直接下载运行。
+## Usage
 
-1. 下载 `Peek.exe`。
-2. 双击运行，不需要安装。
-3. Peek 启动后会显示主窗口，并在任务栏右下角创建托盘图标。
-4. 如果 Windows SmartScreen 提示未知发布者，请先确认文件来自本仓库；当前版本尚未进行商业代码签名。
+Run `Peek.exe`. It starts in the tray with the HUD visible. Options:
 
-> 系统要求：Windows 10 或 Windows 11，x64。
-
-## 功能详解
-
-### 闪现 Ghost
-
-> 回答：“刚才闪过去的到底是什么？”
-
-Ghost 在后台观察短生命周期的进程和顶层窗口事件。当命令行窗口、脚本宿主、更新程序或安装器很快出现又消失时，它会保留最近的事件，方便你事后查看。
-
-每条记录会尽量显示：
-
-- 发生时间、程序名和 PID
-- 进程启动、退出以及窗口创建、显示、隐藏、销毁事件
-- 进程存活时间或窗口存在时间
-- EXE 路径和命令行
-- 父进程、父进程路径
-- 窗口标题
-
-使用方法：
-
-1. 看到窗口一闪而过后，按 `Ctrl + Shift + G`。
-2. Peek 会打开 Ghost，并把最近发生的事件放在最前面。
-3. 点击记录可展开路径、命令行和父进程等详细信息。
-4. 可从记录中打开程序所在位置，或直接进入 Focus 探查模式。
-
-Ghost 只在内存中保留最近约 100 条事件，不会创建后台日志文件。进程已经退出后，路径和命令行可能来不及读取；如果 WMI 订阅被系统策略阻止，Peek 会自动切换到低开销的 250 ms 进程快照模式。
-
-### 解锁 Unlock
-
-> 回答：“谁正在占用这个文件？”
-
-当 Windows 提示文件正在使用时，Unlock 可以找出可能的占用进程。
-
-使用方法：
-
-1. 切换到 **解锁 / Unlock**。
-2. 把文件拖进 Peek，或点击“选择文件”。
-3. 查看占用程序的名称、PID 和 EXE 路径。
-4. 根据需要打开程序所在位置，或者在确认提示后结束进程。
-
-Peek 使用 Windows 官方 Restart Manager 查询占用者。第一版不会强制关闭任意 Handle，以避免文件损坏和系统不稳定。驱动程序、内存映射或 Restart Manager 无法识别的内核占用，可能不会出现在结果中。
-
-> 结束进程可能导致未保存的数据丢失。请先尝试正常关闭对应程序。
-
-### 探查 Focus
-
-> 回答：“鼠标下面这个 Windows UI 到底是什么？”
-
-Focus 是一个面向普通用户的轻量 UI 探针。它会高亮鼠标下方的窗口或控件，并显示能够读取到的 Win32 与 UI Automation 信息。
-
-使用方法：
-
-1. 按 `Ctrl + Shift + F`，或在 Focus 页点击“开始探查”。
-2. 将鼠标移动到目标窗口、按钮、输入框或其他控件上。
-3. 查看高亮区域和实时属性。
-4. 按 `Esc` 结束探查。
-
-可显示的信息包括：
-
-- HWND、进程名称、PID 和 EXE 路径
-- Window Class、Window Title
-- 坐标、宽度和高度
-- AutomationId、ControlType、Name、Value
-- UI Automation BoundingRectangle
-
-某些管理员窗口、受保护窗口、安全桌面或未实现 UI Automation Provider 的程序，只会返回部分信息，这是 Windows 权限和目标程序能力造成的正常限制。
-
-## 快捷键和托盘
-
-| 操作 | 方法 |
-| --- | --- |
-| 打开最近的闪现记录 | `Ctrl + Shift + G` |
-| 进入 Focus 探查模式 | `Ctrl + Shift + F` |
-| 退出 Focus | `Esc` |
-| 重新打开主窗口 | 单击或双击托盘图标 |
-| 打开托盘菜单 | 右键托盘图标 |
-| 完全退出 Peek | 托盘菜单 → “退出” |
-
-右键托盘图标可以选择：
-
-- 打开 Peek
-- 设置
-- 语言：简体中文 / English
-- 退出 Peek
-
-## 切换语言
-
-Peek 内置简体中文和 English，无需下载额外语言包。
-
-- 在主窗口右上角点击 `中文 / EN`，立即切换界面语言。
-- 或右键托盘图标，打开“语言 / Language”子菜单进行选择。
-- 第一次运行时自动跟随 Windows 显示语言。
-- 手动切换后会记住选择，下次启动继续使用。
-
-README 语言也可以通过页面顶部的 [简体中文](#readme-zh) / [English](#readme-en) 快速跳转。
-
-## 关闭窗口与设置
-
-第一次点击窗口右上角的 `X` 时，Peek 会询问：
-
-- **最小化到托盘**：隐藏主窗口，但继续捕获 Ghost 事件并响应快捷键。
-- **退出 Peek**：完全结束程序、后台监听和全局快捷键。
-
-勾选“记住我的选择”后，以后会直接执行该操作。你可以随时右键托盘图标并打开“设置”，改为：
-
-- 每次询问
-- 最小化到托盘
-- 退出 Peek
-
-语言和关闭行为只保存在当前 Windows 用户的本机注册表中。
-
-## 隐私与权限
-
-- 不联网，不上传文件、进程或窗口信息。
-- 不需要登录，不收集遥测，不创建后台事件日志。
-- 捕获的 Ghost 事件只保存在内存中，退出程序后消失。
-- 默认以普通用户权限运行，不会自动请求管理员权限。
-- 对管理员进程和受保护进程，Windows 可能拒绝读取路径、命令行、UI 属性或拒绝结束进程；Peek 会显示系统允许提供的信息。
-
-## 从源代码构建
-
-需要：
-
-- Visual Studio 2022 Build Tools，并安装 **Desktop development with C++** 工作负载
-- CMake 3.24 或更高版本
-
-在 PowerShell 中运行：
-
-```powershell
-./scripts/build-release.ps1
+```
+Peek.exe --show                    open the window at startup
+Peek.exe --config <file>           use a specific settings file
+Peek.exe --who-locks <path>        investigate a file or folder
+Peek.exe --inspect-file <path>     same, with file details first
+Peek.exe --register-shell          add the Explorer menu entries (current user)
+Peek.exe --unregister-shell        remove them
+Peek.exe --self-test [report]      run diagnostics
 ```
 
-使用 Visual Studio 多配置生成器时，输出文件位于：
+Only one instance runs; later launches hand their request to the running one.
 
-```text
-build/release/bin/Release/Peek.exe
+## Explorer integration
+
+Settings -> Unlock and Explorer -> **Add Explorer menu entries** (or `--register-shell`). This writes
+per-user verbs under `HKCU\Software\Classes\*\shell` and `...\Directory\shell`: no administrator rights,
+fully removable. Right-click a file or folder: **Peek: Who is locking this?** or **Peek: Inspect file**.
+
+- On Windows 11 these classic verbs appear under **Show more options**. The new-style Windows 11 menu
+  requires a packaged COM extension with identity, which does not fit a portable executable; see Known limitations.
+- Explorer shows classic verbs for at most 15 selected items. Selected files are merged into one investigation.
+- If you move the portable folder, register again (the Settings page tells you when entries point elsewhere).
+
+## Configuration
+
+Settings live in `Peek.ini` next to `Peek.exe` (portable). If that folder is not writable, Peek uses
+`%APPDATA%\Peek\Peek.ini`. Everything is editable in the Settings tab and applied immediately; the file
+is plain UTF-8 and invalid values are corrected on load.
+
+```ini
+[General]
+Theme=system
+CloseButton=hide
+StartWithWindow=0
+[Hud]
+Visible=1
+Mode=compact
+Opacity=88
+Monitor=primary
+Anchor=topright
+OffsetX=16
+OffsetY=16
+Fullscreen=hide
+ClickThrough=0
+[Ghost]
+Enabled=1
+Retention=500
+Trace=off
+IgnoreNoiseWindows=1
+GroupByLifecycle=0
+[Unlock]
+MaxDepth=2
+MaxFiles=500
+[Focus]
+Enabled=1
+HighlightColor=#3985FF
+HighlightWidth=3
+HighlightDurationMs=0
+[Shortcuts]
+ActivateEnabled=0
+Activate=Ctrl+Shift+P
+GhostEnabled=0
+Ghost=Ctrl+Shift+G
+FocusEnabled=0
+Focus=Ctrl+Shift+F
 ```
 
-自动与手动验收步骤见 [TESTING.md](TESTING.md)，架构和 Windows API 选择见 [ARCHITECTURE.md](ARCHITECTURE.md)。
-
-## 当前版本范围
-
-- Windows 10 / 11 x64
-- 一个原生 Win32 窗口和一个托盘图标
-- 最近 100 条 Ghost 内存事件
-- Unlock 文件选择与拖放、定位程序、确认后结束进程
-- Focus 的 Win32 与 UI Automation 属性、高亮和 Esc 退出
-- 简体中文 / English 即时切换
-- 关闭按钮行为设置
-
-当前没有自动更新、网络功能、账户、插件系统、数据库、完整任务管理器、强制关闭 Handle 或大型日志系统。
-
-## 开源许可证
-
-Peek 使用 [MIT License](LICENSE) 发布。你可以使用、复制、修改和分发源码或程序，但需要保留许可证中的版权与许可声明。
-
-<div align="right"><a href="#top">返回顶部</a></div>
-
----
-
-<a id="readme-en"></a>
-
-## English
-
-Peek is a small, fast Windows observation utility. It is not a task manager and does not try to replace PowerToys. It focuses on three questions that Windows often cannot answer immediately.
-
-| Feature | Question answered | When it helps |
-| --- | --- | --- |
-| **Ghost** | What was that window or process that flashed past? | A console, script, updater, or installer appeared and vanished |
-| **Unlock** | Which process is using this file? | A file cannot be deleted, moved, renamed, or replaced |
-| **Focus** | What Windows UI element is under the pointer? | You need to identify a window, button, field, process, or automation control |
-
-### Why Peek
-
-- **Small and direct:** all three tools share one compact `420 × 540` window.
-- **Truly native:** C++20, Win32, and Windows system components; no Electron, WebView, Qt, or .NET Runtime.
-- **Offline by design:** no account, telemetry, cloud service, online database, or network dependency.
-- **Always available:** a tray icon and global hotkeys keep the tools one action away.
-- **Bilingual:** follows the Windows display language on first launch and remembers later changes.
-
-## Download and start
-
-Download the official Windows x64 build from [GitHub Releases](https://github.com/HaBaDEDE/Peek/releases/latest):
-
-**[Download Peek.exe](https://github.com/HaBaDEDE/Peek/releases/latest/download/Peek.exe)**
-
-You can also install and update Peek through its self-hosted Scoop bucket:
-
-```powershell
-scoop bucket add peek https://github.com/HaBaDEDE/Peek
-scoop install peek
-```
-
-Checksum file: [SHA256SUMS.txt](https://github.com/HaBaDEDE/Peek/releases/latest/download/SHA256SUMS.txt)
-
-The repository copy at [dist/Peek.exe](dist/Peek.exe) also corresponds to the current source revision.
-
-1. Download `Peek.exe`.
-2. Run it directly; no installation is required.
-3. Peek opens its main window and adds an icon to the notification area.
-4. The current build is not commercially code-signed. If SmartScreen reports an unknown publisher, first confirm that the file came from this repository.
-
-> Requirements: Windows 10 or Windows 11, x64.
-
-## Features in detail
-
-### Ghost
-
-> Answers: “What exactly flashed past just now?”
-
-Ghost observes short-lived processes and top-level window events. After a console, script host, updater, or installer appears and vanishes, press `Ctrl + Shift + G` to see the latest event immediately.
-
-Records include as much of the following as Windows makes available:
-
-- Time, executable name, and PID
-- Process start/exit and window create/show/hide/destroy events
-- Process lifetime or window lifetime
-- Executable path and command line
-- Parent process and parent executable path
-- Window title
-
-Select a card to expand its details. Ghost keeps only the latest 100 events in memory and writes no background log. Paths and command lines are best-effort for processes that exit very quickly. If local policy blocks WMI subscriptions, Peek automatically falls back to a low-cost 250 ms process snapshot while window events remain event-driven.
-
-### Unlock
-
-> Answers: “Who is using this file?”
-
-Open **Unlock**, drop a file onto the window or use the file picker, and Peek lists the applications that Windows reports as using it. Each result can show the process name, PID, and executable path. You can reveal the executable or terminate the process after confirmation.
-
-Unlock uses the official Windows Restart Manager API. It intentionally does not force-close arbitrary handles, which could corrupt data or destabilize an application. Kernel drivers, memory mappings, and owners that Restart Manager cannot identify may not appear.
-
-> Terminating a process can discard unsaved work. Try closing the application normally first.
-
-### Focus
-
-> Answers: “What Windows UI is under the pointer?”
-
-Press `Ctrl + Shift + F` or choose **Start Inspect**, then move the pointer over a window or control. Peek highlights the target and reports available Win32 and UI Automation properties in real time. Press `Esc` to stop.
-
-Available fields include:
-
-- HWND, process name, PID, and executable path
-- Window Class and Window Title
-- Position, width, and height
-- AutomationId, ControlType, Name, and Value
-- UI Automation BoundingRectangle
-
-Elevated, protected, secure-desktop, or custom-rendered applications may expose only part of this information.
-
-## Hotkeys and tray
-
-| Action | Shortcut or command |
-| --- | --- |
-| Show the latest Ghost events | `Ctrl + Shift + G` |
-| Start Focus inspection | `Ctrl + Shift + F` |
-| Stop Focus inspection | `Esc` |
-| Reopen the main window | Single- or double-click the tray icon |
-| Open the tray menu | Right-click the tray icon |
-| Fully stop Peek | Tray menu → **Exit** |
-
-The tray menu provides **Open Peek**, **Settings**, **Language**, and **Exit**.
-
-## Language switching
-
-Peek includes Simplified Chinese and English without extra language packs.
-
-- Click `中文 / EN` in the top-right corner of the main window.
-- Or right-click the tray icon and choose a language from the **Language** submenu.
-- On first launch, Peek follows the Windows display language.
-- After a manual change, Peek remembers the selection for later launches.
-
-Use [简体中文](#readme-zh) / [English](#readme-en) at the top of this README to switch the documentation language.
-
-## Closing and settings
-
-The first time you click `X`, Peek asks whether it should:
-
-- **Minimize to tray:** hide the window while Ghost capture and hotkeys remain active.
-- **Exit Peek:** stop the application, listeners, and global hotkeys completely.
-
-Enable **Remember my choice** to apply the selection automatically next time. You can reset it from tray **Settings** to **Ask every time**, **Minimize to tray**, or **Exit Peek**. Language and close behavior are stored only for the current Windows user in the local registry.
-
-## Privacy and permissions
-
-- No network access, accounts, telemetry, cloud sync, or event database.
-- Captured Ghost events remain in memory and disappear when Peek exits.
-- Peek normally runs unelevated and does not request elevation automatically.
-- Windows may deny paths, command lines, UI properties, or process termination for elevated and protected processes. Peek displays whatever the operating system permits.
-
-## Build from source
-
-Requirements:
-
-- Visual Studio 2022 Build Tools with **Desktop development with C++**
-- CMake 3.24 or newer
-
-Run from PowerShell:
-
-```powershell
-./scripts/build-release.ps1
-```
-
-With the Visual Studio multi-config generator, the executable is written to:
-
-```text
-build/release/bin/Release/Peek.exe
-```
-
-See [TESTING.md](TESTING.md) for acceptance testing and [ARCHITECTURE.md](ARCHITECTURE.md) for architecture and Windows API rationale.
-
-## Current release scope
-
-- Windows 10 / 11 x64
-- One native Win32 window and one tray icon
-- The latest 100 Ghost events, held in memory
-- Unlock file picker and drag-and-drop, reveal executable, confirmed process termination
-- Focus Win32/UI Automation details, target highlight, and `Esc` to exit
-- Instant Simplified Chinese / English switching
-- Close-button behavior setting
-
-There is currently no updater, networking, account system, plug-in system, database, full task manager, force-close-handle feature, or large logging subsystem.
+Valid values: `Theme` system/light/dark; `CloseButton` hide/exit; `Mode` compact/expanded; `Anchor`
+topleft/topright/bottomleft/bottomright; `Fullscreen` hide/show; `Trace` off/30s/5m/continuous; booleans 0/1.
+`Opacity` is 30-100, `Retention` 50-10000. Comments must be on their own line (start with `;` or `#`).
+
+## Troubleshooting
+
+- **No process start/exit events:** WMI may be denied for standard users. Peek falls back to polling and says
+  so in the HUD footer; very short-lived processes can be missed in that mode.
+- **"Access denied" in Unlock or missing paths in Process:** the other process is elevated or protected.
+  Run Peek as administrator to see more. Peek never elevates itself.
+- **A shortcut says "in use by another application":** pick another combination.
+- **Explorer entries missing:** on Windows 11 use *Show more options*; check Settings for the registration state.
+- **HUD hidden:** it hides for fullscreen apps by default, or you hid it; use the tray menu.
+
+## Known limitations
+
+- Untested on Windows (see top). ARM64 builds are untested.
+- No ETW backend yet; Trace mode enriches WMI/WinEvent capture only.
+- Native controls are themed for dark mode on a best-effort basis; some may stay light on older Windows 10 builds,
+  and popup menus are always light.
+- Windows 11 new-style context menu is not supported (classic verbs only).
+- Restart Manager is used to identify lock owners. Peek does not call `RmShutdown`, because that can affect
+  other registered applications; it asks the owning process's windows to close instead.
+- The optional mouse gesture for Focus is not implemented.
+- Selecting a node in the Focus hierarchy does not move the highlight yet.
 
 ## License
 
-Peek is released under the [MIT License](LICENSE). You may use, copy, modify, and distribute the source or application while retaining the copyright and permission notice from the license.
-
-<div align="right"><a href="#top">Back to top</a></div>
+MIT. See [LICENSE](LICENSE). Original work copyright (c) 2026 HaBaDEDE; modifications by their authors.

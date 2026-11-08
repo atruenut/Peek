@@ -63,10 +63,10 @@ Values are validated and clamped on load. No registry use.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 1 | Foundation, English-only, settings, HUD, persistent Ghost events, optional shortcuts | in progress |
-| 2 | Explorer integration, multi-file Unlock, graduated close/terminate workflow | planned |
-| 3 | Focus Live/Frozen/Pinned, UIA tree, JSON/C copy | planned |
-| 4 | Unified process/window/file model, process tree, ETW investigation, Trace mode improvements | planned |
+| 1 | Foundation, English-only, settings, HUD, persistent Ghost events, optional shortcuts | code complete, untested on Windows |
+| 2 | Explorer integration, multi-file Unlock, graduated close/terminate workflow | code complete, untested |
+| 3 | Focus Live/Frozen/Pinned, UIA tree, JSON/C copy | code complete, untested |
+| 4 | Unified process/window/file model, process tree, ETW investigation, Trace mode improvements | partly (no ETW) |
 | 5 | Test matrix on Windows 10/11, ARM64, DPI, fullscreen, portable; release build | planned |
 
 ## 4. Technical risks
