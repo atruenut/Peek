@@ -15,6 +15,9 @@ public:
     [[nodiscard]] static std::wstring QueryCommandLine(DWORD pid);
     [[nodiscard]] static DWORD QueryParentPid(DWORD pid);
     [[nodiscard]] static bool QueryStartTime(DWORD pid, FILETIME& start_time);
+    // True while the process with this PID *and* creation time (when known) is still alive.
+    // A reused PID with a different creation time is reported as not running.
+    [[nodiscard]] static bool IsRunning(const ProcessIdentity& identity);
 };
 
 } // namespace peek

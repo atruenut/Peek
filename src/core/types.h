@@ -1,11 +1,30 @@
 #pragma once
 
+#include "core/categories.h"
+
 #include <windows.h>
 #include <chrono>
 #include <cstdint>
 #include <string>
 
 namespace peek {
+
+[[nodiscard]] inline ULONGLONG FileTimeToU64(const FILETIME& value) {
+    return (static_cast<ULONGLONG>(value.dwHighDateTime) << 32) | value.dwLowDateTime;
+}
+
+// A process is identified by PID *and* creation time, because Windows reuses PIDs.
+// A zero start time means "unknown" and matches any start time for the same PID.
+struct ProcessIdentity {
+    DWORD pid{};
+    ULONGLONG start{};
+
+    [[nodiscard]] bool Known() const { return pid != 0 && start != 0; }
+    [[nodiscard]] bool Matches(const ProcessIdentity& other) const {
+        if (pid == 0 || pid != other.pid) return false;
+        return start == 0 || other.start == 0 || start == other.start;
+    }
+};
 
 struct ProcessInfo {
     DWORD pid{};
@@ -18,6 +37,8 @@ struct ProcessInfo {
     FILETIME start_time{};
     bool elevated{};
     bool accessible{};
+
+    [[nodiscard]] ProcessIdentity Identity() const { return {pid, FileTimeToU64(start_time)}; }
 };
 
 struct WindowInfo {
@@ -37,6 +58,7 @@ struct AutomationInfo {
     RECT bounds{};
 };
 
+// Raw capture kinds. Several kinds map to one user-facing category.
 enum class GhostKind {
     ProcessStarted,
     ProcessExited,
@@ -46,8 +68,21 @@ enum class GhostKind {
     WindowDestroyed,
 };
 
+[[nodiscard]] constexpr EventCategory CategoryOf(GhostKind kind) {
+    switch (kind) {
+        case GhostKind::ProcessStarted: return EventCategory::ProcessStarted;
+        case GhostKind::ProcessExited: return EventCategory::ProcessTerminated;
+        case GhostKind::WindowCreated:
+        case GhostKind::WindowShown: return EventCategory::WindowAppeared;
+        case GhostKind::WindowHidden:
+        case GhostKind::WindowDestroyed: return EventCategory::WindowDisappeared;
+    }
+    return EventCategory::ProcessStarted;
+}
+
 struct GhostEvent {
     std::uint64_t sequence{};
+    std::uint64_t lifecycle_id{};   // events of one process lifetime share an id
     GhostKind kind{};
     std::chrono::system_clock::time_point timestamp{};
     ProcessInfo process;

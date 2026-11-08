@@ -1,5 +1,7 @@
 #include "core/process_resolver.h"
 
+#include "core/com_scope.h"
+
 #include <tlhelp32.h>
 #include <wbemidl.h>
 #include <wrl/client.h>
@@ -18,6 +20,9 @@ std::wstring VariantString(const VARIANT& value) {
 }
 
 std::wstring QueryWmiProperty(DWORD pid, const wchar_t* property) {
+    // Callable from any thread: make sure COM is usable on it (no-op if the thread already has an apartment).
+    ComScope com(COINIT_MULTITHREADED);
+    if (!com.Usable()) return {};
     ComPtr<IWbemLocator> locator;
     if (FAILED(CoCreateInstance(CLSID_WbemLocator, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&locator)))) return {};
 
@@ -96,6 +101,22 @@ bool ProcessResolver::QueryStartTime(DWORD pid, FILETIME& start_time) {
     const bool ok = GetProcessTimes(process, &start_time, &exit, &kernel, &user) != FALSE;
     CloseHandle(process);
     return ok;
+}
+
+bool ProcessResolver::IsRunning(const ProcessIdentity& identity) {
+    if (identity.pid == 0) return false;
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, identity.pid);
+    if (!process) {
+        // Access denied means the process exists but is protected; any other error means it is gone.
+        return GetLastError() == ERROR_ACCESS_DENIED;
+    }
+    bool running = WaitForSingleObject(process, 0) == WAIT_TIMEOUT;
+    if (running && identity.start != 0) {
+        FILETIME created{}, exited{}, kernel{}, user{};
+        if (GetProcessTimes(process, &created, &exited, &kernel, &user) && FileTimeToU64(created) != identity.start) running = false;
+    }
+    CloseHandle(process);
+    return running;
 }
 
 ProcessInfo ProcessResolver::Resolve(DWORD pid, DWORD known_parent, const std::wstring& known_name,
