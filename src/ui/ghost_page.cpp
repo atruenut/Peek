@@ -50,11 +50,12 @@ void GhostPage::OnCreate() {
 void GhostPage::OnLayout(int width, int height) {
     const int m = Px(8), row = Px(24), gap = Px(6);
     int x = width - m;
-    auto place_right = [&](HWND control, int w) { x -= w; MoveWindow(control, x, m, w, Px(240), TRUE); x -= gap; };
-    place_right(group_, Px(190));
-    place_right(time_, Px(120));
-    place_right(state_, Px(130));
-    place_right(type_, Px(160));
+    // Combo boxes get their drop-down height; the checkbox keeps the row height.
+    auto place_right = [&](HWND control, int w, int h) { x -= w; MoveWindow(control, x, m, w, h, TRUE); x -= gap; };
+    place_right(group_, Px(190), row);
+    place_right(time_, Px(120), Px(240));
+    place_right(state_, Px(130), Px(240));
+    place_right(type_, Px(160), Px(240));
     MoveWindow(filter_, m, m, std::max(Px(80), x + gap - m - gap), row, TRUE);
 
     const int bar_y = m + row + gap;

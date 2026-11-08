@@ -282,7 +282,7 @@ void SettingsPage::ScrollTo(int position) {
     RECT client{};
     GetClientRect(hwnd_, &client);
     scroll_y_ = std::max(0, position);   // OnLayout clamps to the content height
-    OnLayout(client.right, client.bottom);
+    Relayout(client.right, client.bottom);
 }
 
 HBRUSH SettingsPage::OnControlColor(HWND control) { return control == color_swatch_ ? swatch_brush_ : nullptr; }

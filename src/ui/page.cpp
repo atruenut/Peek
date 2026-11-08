@@ -17,6 +17,7 @@ bool Page::Create(HWND parent, HINSTANCE instance) {
     wc.lpfnWndProc = PageProc;
     wc.hInstance = instance;
     wc.lpszClassName = kPageClass;
+    wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
     hwnd_ = CreateWindowExW(WS_EX_CONTROLPARENT, kPageClass, L"", WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | ExtraStyle(),
@@ -28,6 +29,19 @@ void Page::Place(const RECT& area, bool visible) {
     if (!hwnd_) return;
     SetWindowPos(hwnd_, nullptr, area.left, area.top, area.right - area.left, area.bottom - area.top,
                  SWP_NOZORDER | SWP_NOACTIVATE | (visible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+    if (visible) RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+}
+
+// Moves every child with painting suspended, then repaints the whole page once. Moving controls one by one
+// leaves stale pixels (old label text, a vacated checkbox) where a control used to be.
+void Page::Relayout(int width, int height) {
+    if (!hwnd_) return;
+    if (redraw_depth_++ == 0) SendMessageW(hwnd_, WM_SETREDRAW, FALSE, 0);
+    OnLayout(width, height);
+    if (--redraw_depth_ == 0) {
+        SendMessageW(hwnd_, WM_SETREDRAW, TRUE, 0);
+        RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+    }
 }
 
 void Page::SetAppearance(const Theme& theme, UINT dpi, HFONT font) {
@@ -49,8 +63,7 @@ void Page::SetAppearance(const Theme& theme, UINT dpi, HFONT font) {
     OnAppearance();
     RECT client{};
     GetClientRect(hwnd_, &client);
-    OnLayout(client.right, client.bottom);
-    InvalidateRect(hwnd_, nullptr, TRUE);
+    Relayout(client.right, client.bottom);
 }
 
 void Page::RestyleChildren() {
@@ -248,7 +261,7 @@ LRESULT Page::Handle(UINT message, WPARAM wparam, LPARAM lparam) {
             OnCreate();
             return 0;
         case WM_SIZE:
-            OnLayout(LOWORD(lparam), HIWORD(lparam));
+            Relayout(LOWORD(lparam), HIWORD(lparam));
             return 0;
         case WM_COMMAND:
             OnCommand(LOWORD(wparam), HIWORD(wparam), reinterpret_cast<HWND>(lparam));

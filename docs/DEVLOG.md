@@ -96,5 +96,11 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
 - 2026-11-08: renamed Peek -> PeekII (exe, INI, window classes, mutex, Explorer verbs, resources) and replaced the icon
   (`scripts/generate-brand-assets.py`). Old `Peek.*` Explorer verbs are removed on register/unregister. An old `Peek.ini` is NOT
   migrated; settings start from defaults.
+- 2026-11-08: stale-paint glitches (scrolled Settings showed old text under new text; Ghost's "Group by process lifetime" checkbox
+  covered the Pause button; both fixed by moving the mouse or window). Causes: (1) Ghost gave its checkbox the 240 DIP combo
+  height, the same mistake as the Settings page; (2) controls were moved one at a time, leaving pixels where they used to be.
+  Fix: `Page::Relayout` suspends painting, runs `OnLayout`, then repaints the whole page once (used for resize, DPI/theme change
+  and Settings scrolling); pages also repaint when shown and use `CS_HREDRAW|CS_VREDRAW`. Still untested on Windows: if a glitch
+  remains, note which tab and action triggers it.
 
 (Add further dated notes here.)

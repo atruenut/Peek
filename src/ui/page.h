@@ -62,6 +62,7 @@ protected:
     virtual LRESULT OnNotify(NMHDR* header) { (void)header; return 0; }
     virtual void OnMessage(UINT, WPARAM, LPARAM) {}
     virtual void OnAppearance() {}
+    void Relayout(int width, int height);   // OnLayout with painting suspended, then one full repaint
     // Extra window styles for the page itself (for example WS_VSCROLL).
     virtual DWORD ExtraStyle() const { return 0; }
     // Lets a page paint a static control with its own brush (for example a color swatch). Return null for default.
@@ -100,6 +101,7 @@ protected:
     HFONT font_{};
     HBRUSH background_brush_{};
     HBRUSH surface_brush_{};
+    int redraw_depth_{0};
     HFONT bold_font_{};
     bool loading_{false};   // set while controls are being filled so change handlers do not save
 
