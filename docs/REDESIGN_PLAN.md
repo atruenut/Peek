@@ -1,4 +1,4 @@
-# Peek Desktop redesign plan
+# PeekII redesign plan
 
 This document records the audit of the original code base, the decisions made for
 the redesign, and the technical risks. It is the first thing to read when picking
@@ -22,7 +22,7 @@ About 3,300 lines of C++20 across 28 source files. It is small and mostly clean.
 | `OverlayWindow` | Keep as the Focus highlight. A new, separate `HudWindow` is added. |
 | `localization.*` | **Remove.** Chinese strings and registry-backed language switching. Replaced by a single English `strings.h`. |
 | `CMakeLists.txt`, PowerShell build scripts | **Replace** with `build.bat` (GCC/G++, MinGW-w64). |
-| `docs/` website, screenshots, `packaging/`, `bucket/`, `dist/Peek.exe` | **Remove.** They describe the old UI, contain Chinese, and point at the upstream author's release channels. |
+| `docs/` website, screenshots, `packaging/`, `bucket/`, `dist/PeekII.exe` | **Remove.** They describe the old UI, contain Chinese, and point at the upstream author's release channels. |
 
 ### Chinese content found (all removed)
 
@@ -61,8 +61,8 @@ on a worker; all UI Automation runs on one worker).
 
 ### Settings
 
-Portable `Peek.ini` next to the executable. If that directory is not writable the file falls back to
-`%APPDATA%\Peek\Peek.ini`. A small hand-written UTF-8 INI reader/writer (no Win32 dependency, unit-testable on any host).
+Portable `PeekII.ini` next to the executable. If that directory is not writable the file falls back to
+`%APPDATA%\PeekII\PeekII.ini`. A small hand-written UTF-8 INI reader/writer (no Win32 dependency, unit-testable on any host).
 Values are validated and clamped on load. No registry use for settings (the optional Explorer entries are the only registry writes).
 
 ## 3. Phases and status
@@ -90,7 +90,7 @@ Values are validated and clamped on load. No registry use for settings (the opti
 ## 5. Explicit design decisions
 
 - Global hotkeys default to **off**; each has its own enable flag and a configurable key string. Conflicts are
-  detected both between Peek's own shortcuts and via `RegisterHotKey` failure, and reported in Settings.
+  detected both between PeekII's own shortcuts and via `RegisterHotKey` failure, and reported in Settings.
 - No low-level keyboard or mouse hooks anywhere.
 - Window noise reduction: a window `CREATE` alone is not reported. `SHOW`, `HIDE` and `DESTROY` of a *visible*
   window are, so one visible window produces one "appeared" and one "disappeared" record. Raw create events are

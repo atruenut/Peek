@@ -34,7 +34,7 @@ public:
     void Execute(Command command, std::uint64_t argument = 0) override;
     [[nodiscard]] std::wstring ShortcutStatus(int slot) const override;
 
-    // True if another Peek instance is running; the request was forwarded to it.
+    // True if another PeekII instance is running; the request was forwarded to it.
     static bool ForwardToRunningInstance(const CommandLine& command_line);
 
 private:

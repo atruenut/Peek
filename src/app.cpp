@@ -9,8 +9,8 @@
 
 namespace peek {
 namespace {
-constexpr wchar_t kControllerClass[] = L"Peek.Controller";
-constexpr wchar_t kMutexName[] = L"Local\\Peek.SingleInstance";
+constexpr wchar_t kControllerClass[] = L"PeekII.Controller";
+constexpr wchar_t kMutexName[] = L"Local\\PeekII.SingleInstance";
 
 enum TrayCommand : UINT {
     kTrayOpen = 1, kTrayHud, kTrayExpanded, kTrayMonitor, kTrayFocus, kTrayTraceOff, kTrayTrace30, kTrayTrace5, kTrayTraceOn,
@@ -96,7 +96,7 @@ int App::Run(HINSTANCE instance) {
     wc.lpszClassName = kControllerClass;
     RegisterClassExW(&wc);
     // A hidden top-level window (not message-only) so it receives the TaskbarCreated broadcast.
-    controller_ = CreateWindowExW(WS_EX_TOOLWINDOW, kControllerClass, L"Peek controller", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance, this);
+    controller_ = CreateWindowExW(WS_EX_TOOLWINDOW, kControllerClass, L"PeekII controller", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance, this);
     auto fail = [&](const wchar_t* what) {
         const DWORD error = GetLastError();
         const std::wstring text = std::wstring(str::kErrStartup) + what + L"\n\n" + Win32ErrorText(error) +
@@ -107,7 +107,7 @@ int App::Run(HINSTANCE instance) {
     if (!controller_) return fail(L"the hidden controller window");
     taskbar_created_ = RegisterWindowMessageW(L"TaskbarCreated");
 
-    if (!window_.Create(instance)) return fail(L"the Peek window");
+    if (!window_.Create(instance)) return fail(L"the PeekII window");
     if (!hud_.Create(instance)) return fail(L"the HUD");
     if (!overlay_.Create(instance)) return fail(L"the Focus highlight");
     AddTrayIcon();
@@ -120,6 +120,7 @@ int App::Run(HINSTANCE instance) {
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (msg.message == WM_KEYDOWN && msg.wParam == VK_F1 && window_.Owns(msg.hwnd)) { window_.ShowHelp(); continue; }
         if (window_.Handle() && IsDialogMessageW(window_.Handle(), &msg)) continue;   // Tab / arrow navigation in pages
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
@@ -252,14 +253,14 @@ void App::AddTrayIcon() {
     tray_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     tray_.uCallbackMessage = kTrayMessage;
     tray_.hIcon = LoadIconW(instance_, MAKEINTRESOURCEW(101));
-    lstrcpynW(tray_.szTip, L"Peek", static_cast<int>(std::size(tray_.szTip)));
+    lstrcpynW(tray_.szTip, L"PeekII", static_cast<int>(std::size(tray_.szTip)));
     tray_added_ = Shell_NotifyIconW(NIM_ADD, &tray_) != FALSE;
 }
 
 void App::UpdateTrayTip() {
     if (!tray_added_) return;
     const Settings s = settings_.Get();
-    const wchar_t* tip = s.ghost.enabled ? L"Peek — monitoring" : L"Peek — monitoring paused";
+    const wchar_t* tip = s.ghost.enabled ? L"PeekII — monitoring" : L"PeekII — monitoring paused";
     lstrcpynW(tray_.szTip, tip, static_cast<int>(std::size(tray_.szTip)));
     tray_.uFlags = NIF_TIP;
     Shell_NotifyIconW(NIM_MODIFY, &tray_);

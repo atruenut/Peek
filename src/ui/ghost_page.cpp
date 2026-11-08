@@ -15,6 +15,7 @@ constexpr UINT_PTR kRunningTimer = 2;    // refresh "still running" state while 
 void GhostPage::OnCreate() {
     filter_ = MakeEdit(kFilter);
     SendMessageW(filter_, EM_SETCUEBANNER, TRUE, reinterpret_cast<LPARAM>(str::kFilterCue));
+    Tip(filter_, str::kTipFilter);
     type_ = MakeCombo(kType);
     FillCombo(type_, {str::kAllEvents, str::kProcessStarted, str::kWindowAppeared, str::kWindowDisappeared, str::kProcessTerminated}, 0);
     state_ = MakeCombo(kState);
@@ -25,6 +26,7 @@ void GhostPage::OnCreate() {
     count_ = MakeLabel(L"");
     pause_ = MakeButton(str::kBtnPauseMonitoring, kPause);
     clear_ = MakeButton(str::kBtnClear, kClear);
+    Tip(group_, str::kTipGroup); Tip(pause_, str::kTipPauseMon); Tip(clear_, str::kTipClearEvents);
 
     list_ = MakeList(kList, LVS_OWNERDATA);
     AddColumn(list_, 0, str::kColTime, 80);
@@ -40,6 +42,8 @@ void GhostPage::OnCreate() {
     focus_ = MakeButton(str::kBtnInspectWindow, kFocus);
     location_ = MakeButton(str::kBtnOpenLocation, kLocation);
     dismiss_ = MakeButton(str::kBtnDismiss, kDismiss);
+    Tip(copy_, str::kTipCopyDetails); Tip(process_, str::kTipProcessDetails); Tip(focus_, str::kTipInspectWindow);
+    Tip(location_, str::kTipOpenLocation); Tip(dismiss_, str::kTipDismissEvent);
     SettingsChanged();
 }
 

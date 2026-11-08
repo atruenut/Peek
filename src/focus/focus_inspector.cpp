@@ -34,7 +34,7 @@ std::wstring ReadStringProperty(IUIAutomationElement* element, HRESULT (STDMETHO
     return TakeBstr(text);
 }
 
-// Reads every property Peek displays. Each property is optional: providers differ widely, so a failed read
+// Reads every property PeekII displays. Each property is optional: providers differ widely, so a failed read
 // leaves the field empty instead of guessing.
 AutomationInfo ReadProperties(IUIAutomationElement* element) {
     AutomationInfo info;
@@ -363,7 +363,7 @@ void FocusInspector::Loop() {
             if (!hwnd) continue;
             DWORD owner = 0;
             GetWindowThreadProcessId(hwnd, &owner);
-            if (owner == GetCurrentProcessId()) continue;   // never inspect Peek itself: the last target stays selected
+            if (owner == GetCurrentProcessId()) continue;   // never inspect PeekII itself: the last target stays selected
             ComPtr<IUIAutomationElement> element;
             if (FAILED(automation->ElementFromPoint(point, &element)) || !element) {
                 automation->ElementFromHandle(hwnd, &element);

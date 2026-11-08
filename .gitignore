@@ -9,4 +9,4 @@
 __pycache__/
 *.pyc
 # Local settings written when running from the source tree
-Peek.ini
+PeekII.ini

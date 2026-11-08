@@ -16,6 +16,9 @@ void FocusPage::OnCreate() {
     copy_c_ = MakeButton(str::kBtnCopyC, kCopyC);
     process_ = MakeButton(str::kBtnProcessDetails, kProcess);
     location_ = MakeButton(str::kBtnOpenLocation, kLocation);
+    Tip(start_, str::kTipFocusStart); Tip(freeze_, str::kTipFocusFreeze); Tip(pin_, str::kTipFocusPin);
+    Tip(copy_text_, str::kTipCopyText); Tip(copy_json_, str::kTipCopyJson); Tip(copy_c_, str::kTipCopyC);
+    Tip(process_, str::kTipProcessDetails); Tip(location_, str::kTipOpenLocation);
     hint_ = MakeLabel(str::kFocusIntro);
     list_ = MakeList(kList);
     AddColumn(list_, 0, str::kColProperty, 130);

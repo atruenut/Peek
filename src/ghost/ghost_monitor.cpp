@@ -389,7 +389,11 @@ void GhostMonitor::WmiLoop() {
         };
         subscribe(L"SELECT * FROM Win32_ProcessStartTrace", start_events);
         subscribe(L"SELECT * FROM Win32_ProcessStopTrace", stop_events);
-        if (FAILED(status)) failure = HResultText(L"WMI process subscription", status);
+        if (status == static_cast<HRESULT>(0x80041003)) {   // WBEM_E_ACCESS_DENIED: live process traces need administrator rights
+            failure = L"Live process notifications need administrator rights.";
+        } else if (FAILED(status)) {
+            failure = HResultText(L"WMI process subscription", status);
+        }
     }
 
     wmi_ok_ = failure.empty() && start_events && stop_events;

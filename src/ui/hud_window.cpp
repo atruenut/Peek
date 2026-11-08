@@ -14,7 +14,7 @@
 namespace peek {
 namespace {
 
-constexpr wchar_t kClassName[] = L"Peek.Hud";
+constexpr wchar_t kClassName[] = L"PeekII.Hud";
 constexpr UINT_PTR kTimerId = 1;
 constexpr UINT kTimerMs = 1500;
 constexpr std::size_t kMaxRows = 200;   // events fetched for scrolling; the store itself may hold more
@@ -57,7 +57,7 @@ bool HudWindow::Create(HINSTANCE instance) {
 
     // Layered + topmost + no-activate + tool window: no focus theft, no taskbar button, no Alt+Tab entry.
     hwnd_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW, kClassName,
-                            L"Peek HUD", WS_POPUP, 0, 0, 10, 10, nullptr, nullptr, instance, this);
+                            L"PeekII HUD", WS_POPUP, 0, 0, 10, 10, nullptr, nullptr, instance, this);
     if (!hwnd_) return false;
     ApplySettings();
     return true;

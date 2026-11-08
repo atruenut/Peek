@@ -1,13 +1,15 @@
-<img src="docs/images/peek-icon.png" width="96" height="96" alt="Peek icon" align="right">
+<img src="docs/images/peekii-icon.png" width="96" height="96" alt="PeekII icon" align="right">
 
-# Peek
+# PeekII
 
-Peek is a small, native Windows utility that makes processes, windows, files and interface elements
+PeekII is a small, native Windows utility that makes processes, windows, files and interface elements
 visible without getting in your way. It runs quietly in the tray, shows a narrow always-on-top activity
 panel (the HUD), and opens a normal window only when you want to dig deeper.
 
-It is a fork of [HaBaDEDE/Peek](https://github.com/HaBaDEDE/Peek), redesigned around a persistent HUD,
-Explorer integration and optional shortcuts. MIT licensed.
+PeekII started as a fork of [HaBaDEDE/Peek](https://github.com/HaBaDEDE/Peek) and has since been redesigned
+around a persistent HUD, Explorer integration and optional shortcuts. It is a different program with its own
+name (PeekII, written "Peek 2"), icon, settings file and Explorer menu entries, so it can sit beside the
+original. MIT licensed.
 
 > **Status: untested on Windows.** This version was written and cross-compiled on Linux. It builds and
 > links with MinGW-w64, and the portable parts (INI, hotkey parsing, settings) have unit tests, but
@@ -20,7 +22,7 @@ Explorer integration and optional shortcuts. MIT licensed.
 - Records process started / exited and window appeared / disappeared events. A process can own many
   windows and windows can vanish before their process, so these are separate event types.
 - Events stay in a persistent list until newer events push them out (retention 100 / 500 / 2,000 or your
-  own value in `Peek.ini`) or you dismiss them. Nothing flashes and disappears.
+  own value in `PeekII.ini`) or you dismiss them. Nothing flashes and disappears.
 - Filter by text (process name, path, command line, window title), event type, running/ended, and age.
   Optionally group events by process lifetime. Process identity is PID **plus** creation time, so a reused
   PID is never confused with the original process.
@@ -47,10 +49,20 @@ Explorer integration and optional shortcuts. MIT licensed.
 - **Live** follows the pointer (hold Shift to hold the target; Esc stops). **Frozen** keeps the selection.
   **Pinned** keeps it and tracks its position while you use other applications. The state is shown in the tab.
 - A click-through highlight frame follows the element's UI Automation bounds (falls back to the window),
-  with configurable color, width and duration. Peek's own windows are never inspected.
+  with configurable color, width and duration. PeekII's own windows are never inspected.
 - Expandable UI Automation hierarchy; copy as plain text, JSON or a C struct.
 - Not every application exposes UI Automation data (custom-drawn, protected or elevated windows may be
   partial). Missing properties are shown as "unavailable", not guessed.
+
+## Help built into the app
+
+- **F1** (or the **? Help** link at the right of the tab strip) explains the tab you are on.
+- Hover any control for a tooltip. Every Settings option is explained, and each Settings section starts
+  with a one-paragraph description.
+- Settings number fields show their valid range; out-of-range values are corrected when you leave the field
+  or press Enter. **Reset to defaults** is at the bottom of Settings.
+- When live process notifications are unavailable (no administrator rights), the status line says what is
+  different instead of showing a raw error code.
 
 ## Interaction model
 
@@ -62,7 +74,7 @@ Explorer integration and optional shortcuts. MIT licensed.
 2. **Tray icon** - open the window, toggle HUD, pause monitoring, choose Trace mode, start Focus, Exit.
 3. **Investigation window** - the tabs above. Closing it hides it (or exits, see Settings).
 
-Global shortcuts are **off by default**, configurable per shortcut, with conflict detection. Peek uses no
+Global shortcuts are **off by default**, configurable per shortcut, with conflict detection. PeekII uses no
 keyboard or mouse hooks.
 
 ## Requirements
@@ -75,7 +87,7 @@ keyboard or mouse hooks.
 You need a MinGW-w64 GCC/G++ (for example [MSYS2](https://www.msys2.org) with `mingw-w64-x86_64-gcc`) on `PATH`.
 
 ```bat
-build.bat                :: x64 release  -> build\x64\Peek.exe
+build.bat                :: x64 release  -> build\x64\PeekII.exe
 build.bat x64 debug
 build.bat arm64          :: needs aarch64-w64-mingw32-g++ (llvm-mingw); not verified
 test.bat                 :: builds if needed, runs the built-in self-test on Windows
@@ -87,16 +99,16 @@ runs the portable unit tests. Neither runs the program.
 
 ## Usage
 
-Run `Peek.exe`. It starts in the tray with the HUD visible. Options:
+Run `PeekII.exe`. It starts in the tray with the HUD visible. Options:
 
 ```
-Peek.exe --show                    open the window at startup
-Peek.exe --config <file>           use a specific settings file
-Peek.exe --who-locks <path>        investigate a file or folder
-Peek.exe --inspect-file <path>     same, with file details first
-Peek.exe --register-shell          add the Explorer menu entries (current user)
-Peek.exe --unregister-shell        remove them
-Peek.exe --self-test [report]      run diagnostics
+PeekII.exe --show                    open the window at startup
+PeekII.exe --config <file>           use a specific settings file
+PeekII.exe --who-locks <path>        investigate a file or folder
+PeekII.exe --inspect-file <path>     same, with file details first
+PeekII.exe --register-shell          add the Explorer menu entries (current user)
+PeekII.exe --unregister-shell        remove them
+PeekII.exe --self-test [report]      run diagnostics
 ```
 
 Only one instance runs; later launches hand their request to the running one.
@@ -105,7 +117,7 @@ Only one instance runs; later launches hand their request to the running one.
 
 Settings -> Unlock and Explorer -> **Add Explorer menu entries** (or `--register-shell`). This writes
 per-user verbs under `HKCU\Software\Classes\*\shell` and `...\Directory\shell`: no administrator rights,
-fully removable. Right-click a file or folder: **Peek: Who is locking this?** or **Peek: Inspect file**.
+fully removable. Right-click a file or folder: **PeekII: Who is locking this?** or **PeekII: Inspect file**.
 
 - On Windows 11 these classic verbs appear under **Show more options**. The new-style Windows 11 menu
   requires a packaged COM extension with identity, which does not fit a portable executable; see Known limitations.
@@ -114,8 +126,8 @@ fully removable. Right-click a file or folder: **Peek: Who is locking this?** or
 
 ## Configuration
 
-Settings live in `Peek.ini` next to `Peek.exe` (portable). If that folder is not writable, Peek uses
-`%APPDATA%\Peek\Peek.ini`. Everything is editable in the Settings tab and applied immediately; the file
+Settings live in `PeekII.ini` next to `PeekII.exe` (portable). If that folder is not writable, PeekII uses
+`%APPDATA%\PeekII\PeekII.ini`. Everything is editable in the Settings tab and applied immediately; the file
 is plain UTF-8 and invalid values are corrected on load.
 
 ```ini
@@ -162,10 +174,10 @@ topleft/topright/bottomleft/bottomright; `Fullscreen` hide/show; `Trace` off/30s
 
 ## Troubleshooting
 
-- **No process start/exit events:** WMI may be denied for standard users. Peek falls back to polling and says
+- **No process start/exit events:** WMI may be denied for standard users. PeekII falls back to polling and says
   so in the HUD footer; very short-lived processes can be missed in that mode.
 - **"Access denied" in Unlock or missing paths in Process:** the other process is elevated or protected.
-  Run Peek as administrator to see more. Peek never elevates itself.
+  Run PeekII as administrator to see more. PeekII never elevates itself.
 - **A shortcut says "in use by another application":** pick another combination.
 - **Explorer entries missing:** on Windows 11 use *Show more options*; check Settings for the registration state.
 - **HUD hidden:** it hides for fullscreen apps by default, or you hid it; use the tray menu.
@@ -177,7 +189,7 @@ topleft/topright/bottomleft/bottomright; `Fullscreen` hide/show; `Trace` off/30s
 - Native controls are themed for dark mode on a best-effort basis; some may stay light on older Windows 10 builds,
   and popup menus are always light.
 - Windows 11 new-style context menu is not supported (classic verbs only).
-- Restart Manager is used to identify lock owners. Peek does not call `RmShutdown`, because that can affect
+- Restart Manager is used to identify lock owners. PeekII does not call `RmShutdown`, because that can affect
   other registered applications; it asks the owning process's windows to close instead.
 - The optional mouse gesture for Focus is not implemented.
 - Selecting a node in the Focus hierarchy does not move the highlight yet.

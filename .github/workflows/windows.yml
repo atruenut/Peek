@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   host-checks:
-    # Portable unit tests and a cross-compile check. Catches build and logic errors quickly; does not run Peek.
+    # Portable unit tests and a cross-compile check. Catches build and logic errors quickly; does not run PeekII.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,19 +48,19 @@ jobs:
 
       - name: Run self-test
         shell: pwsh
-        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/ci-smoke.ps1 -Exe ./build/x64/Peek.exe
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/ci-smoke.ps1 -Exe ./build/x64/PeekII.exe
 
       - name: Prepare artifact
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifact | Out-Null
-          Copy-Item build/x64/Peek.exe artifact/Peek.exe
-          $hash = (Get-FileHash artifact/Peek.exe -Algorithm SHA256).Hash
-          "$hash  Peek.exe" | Set-Content artifact/SHA256SUMS.txt -Encoding ascii
+          Copy-Item build/x64/PeekII.exe artifact/PeekII.exe
+          $hash = (Get-FileHash artifact/PeekII.exe -Algorithm SHA256).Hash
+          "$hash  PeekII.exe" | Set-Content artifact/SHA256SUMS.txt -Encoding ascii
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Peek-windows-x64
+          name: PeekII-windows-x64
           path: artifact/*
           if-no-files-found: error

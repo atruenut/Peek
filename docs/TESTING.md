@@ -7,7 +7,7 @@ failures in [DEVLOG.md](DEVLOG.md). Run as a normal user first.
 
 ```bat
 build.bat
-test.bat                          :: runs "Peek.exe --self-test"
+test.bat                          :: runs "PeekII.exe --self-test"
 ```
 The self-test checks event correlation, real WMI process events, Restart Manager on a locked temp file,
 and a UI Automation read of a native button. On Linux: `tests/run.sh` (portable unit tests, 57 checks).
@@ -30,5 +30,8 @@ and a UI Automation read of a native button. On Linux: `tests/run.sh` (portable 
 10. **Displays/DPI**: second monitor, mixed DPI, move the HUD between them, change scaling, unplug the chosen monitor.
 11. **Fullscreen**: HUD hides in a fullscreen video/game and returns; `Fullscreen=show` keeps it.
 12. **Themes**: light, dark, follow Windows; note any controls that stay light.
-13. **Portable**: run from a USB/other folder; `Peek.ini` is created beside the exe; read-only folder falls back to `%APPDATA%\Peek`.
+13a. **Settings page**: all number boxes and the Choose button have normal height and a border; no label is clipped; shrink the
+    window to the minimum size and confirm a scroll bar appears and the mouse wheel scrolls; hover options for tooltips; press F1 on
+    each tab and click "? Help (F1)"; type 99 in "Folder scan depth", press Enter, and confirm it becomes 16; Reset to defaults.
+13. **Portable**: run from a USB/other folder; `PeekII.ini` is created beside the exe; read-only folder falls back to `%APPDATA%\PeekII`.
 14. **Exit**: tray Exit; process ends; no leftover hotkeys, tray icon or hooks. Kill Explorer and confirm the tray icon returns.

@@ -14,6 +14,8 @@
 #include <commctrl.h>
 
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace peek {
 
@@ -48,6 +50,8 @@ public:
     virtual void Refresh() {}
     // Called when the settings changed somewhere else.
     virtual void SettingsChanged() {}
+    // Enter pressed while this page is shown (commit the field being edited, for example).
+    virtual void Accept() {}
     // Application-defined messages routed by MainWindow (WM_APP range).
     virtual bool HandleAppMessage(UINT, WPARAM, LPARAM) { return false; }
 
@@ -58,6 +62,10 @@ protected:
     virtual LRESULT OnNotify(NMHDR* header) { (void)header; return 0; }
     virtual void OnMessage(UINT, WPARAM, LPARAM) {}
     virtual void OnAppearance() {}
+    // Extra window styles for the page itself (for example WS_VSCROLL).
+    virtual DWORD ExtraStyle() const { return 0; }
+    // Lets a page paint a static control with its own brush (for example a color swatch). Return null for default.
+    virtual HBRUSH OnControlColor(HWND control) { (void)control; return nullptr; }
 
     [[nodiscard]] int Px(int dips) const { return MulDiv(dips, static_cast<int>(dpi_), 96); }
 
@@ -70,6 +78,13 @@ protected:
     HWND MakeList(int id, DWORD extra_style = 0);
     HWND MakeTree(int id);
     HWND MakeText(int id);   // read-only multi-line text with a vertical scroll bar
+    HWND MakeHeading(const wchar_t* text);   // bold section title
+    HWND MakeHint(const wchar_t* text);      // muted, word-wrapped explanation under a heading
+    // Hover tooltip. `text` must outlive the control (pass a string constant).
+    void Tip(HWND control, const wchar_t* text);
+    // Pixel size a label needs: single-line width, or wrapped height for a given width.
+    [[nodiscard]] int TextWidth(HWND control) const;
+    [[nodiscard]] int WrappedHeight(HWND control, int width) const;
 
     void AddColumn(HWND list, int index, const wchar_t* title, int width_dips, int format = LVCFMT_LEFT);
     void FillCombo(HWND combo, std::initializer_list<const wchar_t*> items, int selected);
@@ -85,6 +100,7 @@ protected:
     HFONT font_{};
     HBRUSH background_brush_{};
     HBRUSH surface_brush_{};
+    HFONT bold_font_{};
     bool loading_{false};   // set while controls are being filled so change handlers do not save
 
 private:
@@ -94,6 +110,9 @@ private:
     HWND Track(HWND control);
 
     std::vector<std::pair<HWND, const wchar_t*>> styled_;
+    std::vector<HWND> headings_;
+    std::vector<HWND> hints_;
+    HWND tooltip_{};
 };
 
 } // namespace peek

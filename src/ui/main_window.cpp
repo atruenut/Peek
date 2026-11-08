@@ -8,9 +8,10 @@
 
 namespace peek {
 namespace {
-constexpr wchar_t kClassName[] = L"Peek.MainWindow";
+constexpr wchar_t kClassName[] = L"PeekII.MainWindow";
 const wchar_t* const kTabNames[] = {str::kTabGhost, str::kTabProcess, str::kTabUnlock, str::kTabFocus, str::kTabSettings};
 constexpr int kTabCount = 5;
+constexpr int kHelpHover = 100;   // hover_tab_ value for the help link
 }
 
 MainWindow::MainWindow(EventStore& events, SettingsManager& settings, ProcessResolver& resolver, IconCache& icons,
@@ -138,6 +139,25 @@ void MainWindow::OpenUnlock(const std::vector<std::wstring>& paths, bool inspect
     unlock_page_->ShowTargets(paths, inspect);
 }
 
+RECT MainWindow::HelpRect() const {
+    RECT client{};
+    GetClientRect(hwnd_, &client);
+    const int w = MulDiv(110, dpi_, 96);
+    return RECT{client.right - w - MulDiv(8, dpi_, 96), 0, client.right - MulDiv(8, dpi_, 96), TabHeight()};
+}
+
+void MainWindow::ShowHelp() {
+    const wchar_t* text = str::kHelpSettings;
+    switch (tab_) {
+        case Tab::Ghost: text = str::kHelpGhost; break;
+        case Tab::Process: text = str::kHelpProcess; break;
+        case Tab::Unlock: text = str::kHelpUnlock; break;
+        case Tab::Focus: text = str::kHelpFocus; break;
+        case Tab::Settings: text = str::kHelpSettings; break;
+    }
+    MessageBoxW(hwnd_, text, str::kHelpTitle, MB_OK | MB_ICONINFORMATION);
+}
+
 void MainWindow::Paint(HDC dc) {
     RECT client{};
     GetClientRect(hwnd_, &client);
@@ -155,6 +175,10 @@ void MainWindow::Paint(HDC dc) {
             gdi::Fill(dc, bar, theme_.accent);
         }
     }
+    RECT help = HelpRect();
+    if (hover_tab_ == kHelpHover) gdi::Fill(dc, help, theme_.hover);
+    SelectObject(dc, font_);
+    gdi::Text(dc, str::kHelpTab, help, theme_.muted, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 }
 
 LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -215,12 +239,16 @@ LRESULT MainWindow::HandleMessage(UINT message, WPARAM wparam, LPARAM lparam) {
                 const RECT r = TabRect(i);
                 if (PtInRect(&r, p)) { Select(static_cast<Tab>(i)); break; }
             }
+            const RECT help = HelpRect();
+            if (PtInRect(&help, p)) ShowHelp();
             return 0;
         }
         case WM_MOUSEMOVE: {
             POINT p{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
             int hover = -1;
             for (int i = 0; i < kTabCount; ++i) { const RECT r = TabRect(i); if (PtInRect(&r, p)) hover = i; }
+            const RECT help = HelpRect();
+            if (PtInRect(&help, p)) hover = kHelpHover;
             if (hover != hover_tab_) {
                 hover_tab_ = hover;
                 TRACKMOUSEEVENT track{sizeof(track), TME_LEAVE, hwnd_, 0};
@@ -235,7 +263,9 @@ LRESULT MainWindow::HandleMessage(UINT message, WPARAM wparam, LPARAM lparam) {
             InvalidateRect(hwnd_, nullptr, FALSE);
             return 0;
         case WM_COMMAND:
-            if (LOWORD(wparam) == IDCANCEL || LOWORD(wparam) == IDOK) return 0;   // from IsDialogMessage (Esc/Enter)
+            // From IsDialogMessage: Enter commits the field being edited, Esc does nothing.
+            if (LOWORD(wparam) == IDOK) { if (Page* page = PageFor(tab_)) page->Accept(); return 0; }
+            if (LOWORD(wparam) == IDCANCEL) return 0;
             break;
         case WM_CLOSE:
             if (context_.settings.Get().general.close_button == CloseButton::ExitApp) host_.Execute(Command::Exit);

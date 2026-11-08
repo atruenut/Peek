@@ -19,28 +19,40 @@ std::wstring ExePath() {
 }
 
 void SettingsPage::OnCreate() {
-    auto heading = [&](const wchar_t* text) { return MakeLabel(text, SS_LEFT); };
-    h_general_ = heading(str::kSetGeneralSection);
+    // A control and its label share one tooltip so hovering either explains the option.
+    auto tip = [&](HWND label, HWND control, const wchar_t* text) { Tip(control, text); if (label) Tip(label, text); };
+
+    h_general_ = MakeHeading(str::kSetGeneralSection);
+    hint_general_ = MakeHint(str::kSetGeneralHint);
     l_theme_ = MakeLabel(str::kSetTheme);
     theme_ = MakeCombo(kTheme);
     FillCombo(theme_, {str::kSetThemeSystem, str::kSetThemeLight, str::kSetThemeDark}, 0);
+    tip(l_theme_, theme_, str::kTipTheme);
     l_close_ = MakeLabel(str::kSetCloseButton);
     close_ = MakeCombo(kClose);
     FillCombo(close_, {str::kSetCloseHide, str::kSetCloseExit}, 0);
+    tip(l_close_, close_, str::kTipClose);
     start_window_ = MakeCheck(str::kSetStartWithWindow, kStartWindow);
+    Tip(start_window_, str::kTipStartWindow);
 
-    h_hud_ = heading(str::kSetHudSection);
+    h_hud_ = MakeHeading(str::kSetHudSection);
+    hint_hud_ = MakeHint(str::kSetHudHint);
     hud_visible_ = MakeCheck(str::kSetHudVisible, kHudVisible);
+    Tip(hud_visible_, str::kTipHudVisible);
     hud_expanded_ = MakeCheck(str::kSetHudExpanded, kHudExpanded);
+    Tip(hud_expanded_, str::kTipHudExpanded);
     click_through_ = MakeCheck(str::kSetClickThrough, kClickThrough);
+    Tip(click_through_, str::kTipClickThrough);
     l_opacity_ = MakeLabel(str::kSetOpacity);
     opacity_ = CreateWindowExW(0, TRACKBAR_CLASSW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | TBS_HORZ | TBS_NOTICKS, 0, 0, 10, 10,
                                hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kOpacity)), instance_, nullptr);
     SendMessageW(opacity_, TBM_SETRANGE, TRUE, MAKELPARAM(30, 100));
-    opacity_value_ = MakeLabel(L"");
+    opacity_value_ = MakeLabel(L"", SS_RIGHT);
+    tip(l_opacity_, opacity_, str::kTipOpacity);
     l_corner_ = MakeLabel(str::kSetCorner);
     corner_ = MakeCombo(kCorner);
     FillCombo(corner_, {str::kSetTopLeft, str::kSetTopRight, str::kSetBottomLeft, str::kSetBottomRight}, 1);
+    tip(l_corner_, corner_, str::kTipCorner);
     l_monitor_ = MakeLabel(str::kSetMonitor);
     monitor_ = MakeCombo(kMonitor);
     SendMessageW(monitor_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(str::kSetPrimaryMonitor));
@@ -55,102 +67,239 @@ void SettingsPage::OnCreate() {
         }
         return TRUE;
     }, reinterpret_cast<LPARAM>(this));
+    tip(l_monitor_, monitor_, str::kTipMonitor);
     l_fullscreen_ = MakeLabel(str::kSetFullscreen);
     fullscreen_ = MakeCombo(kFullscreen);
     FillCombo(fullscreen_, {str::kSetFullscreenHide, str::kSetFullscreenShow}, 0);
+    tip(l_fullscreen_, fullscreen_, str::kTipFullscreen);
 
-    h_ghost_ = heading(str::kSetGhostSection);
+    h_ghost_ = MakeHeading(str::kSetGhostSection);
+    hint_ghost_ = MakeHint(str::kSetGhostHint);
     ghost_enabled_ = MakeCheck(str::kSetGhostEnabled, kGhostEnabled);
+    Tip(ghost_enabled_, str::kTipGhostEnabled);
     l_retention_ = MakeLabel(str::kSetRetention);
     retention_ = MakeCombo(kRetention);
+    tip(l_retention_, retention_, str::kTipRetention);
     l_trace_ = MakeLabel(str::kSetTrace);
     trace_ = MakeCombo(kTrace);
     FillCombo(trace_, {str::kSetTraceOff, str::kSetTrace30, str::kSetTrace5m, str::kSetTraceOn}, 0);
+    tip(l_trace_, trace_, str::kTipTrace);
     noise_ = MakeCheck(str::kSetIgnoreNoise, kNoise);
+    Tip(noise_, str::kTipNoise);
 
-    h_unlock_ = heading(str::kSetUnlockSection);
+    h_about_ = MakeHeading(str::kSetAboutSection);
+    about_text_ = MakeHint((std::wstring(str::kAppName) + L" " + str::kAppVersion + L"\r\n" + str::kSetAboutText).c_str());
+    help_ = MakeButton(str::kSetShowHelp, kHelp);
+
+    h_unlock_ = MakeHeading(str::kSetUnlockSection);
+    hint_unlock_ = MakeHint(str::kSetUnlockHint);
     reg_ = MakeButton(str::kSetRegisterShell, kRegister);
+    Tip(reg_, str::kTipRegister);
     unreg_ = MakeButton(str::kSetUnregisterShell, kUnregister);
+    Tip(unreg_, str::kTipUnregister);
     shell_status_ = MakeLabel(L"");
     l_depth_ = MakeLabel(str::kSetDepth);
     depth_ = MakeEdit(kDepth, ES_NUMBER);
+    tip(l_depth_, depth_, str::kTipDepth);
     l_files_ = MakeLabel(str::kSetMaxFiles);
     files_ = MakeEdit(kMaxFiles, ES_NUMBER);
+    tip(l_files_, files_, str::kTipMaxFiles);
 
-    h_focus_ = heading(str::kSetFocusSection);
+    h_focus_ = MakeHeading(str::kSetFocusSection);
+    hint_focus_ = MakeHint(str::kSetFocusHint);
     focus_enabled_ = MakeCheck(str::kSetFocusEnabled, kFocusEnabled);
+    Tip(focus_enabled_, str::kTipFocusEnabled);
     l_width_ = MakeLabel(str::kSetHighlightWidth);
     width_ = MakeEdit(kWidth, ES_NUMBER);
+    tip(l_width_, width_, str::kTipWidth);
     l_color_ = MakeLabel(str::kSetHighlightColor);
+    color_swatch_ = MakeLabel(L"", SS_NOTIFY | WS_BORDER);
     color_ = MakeButton(str::kSetHighlightColorBtn, kColor);
+    color_text_ = MakeLabel(L"");
+    tip(l_color_, color_, str::kTipColor);
+    Tip(color_swatch_, str::kTipColor);
     l_duration_ = MakeLabel(str::kSetHighlightDuration);
     duration_ = MakeEdit(kDuration, ES_NUMBER);
+    tip(l_duration_, duration_, str::kTipDuration);
 
-    h_shortcuts_ = heading(str::kSetShortcutSection);
+    h_shortcuts_ = MakeHeading(str::kSetShortcutSection);
+    hint_shortcuts_ = MakeHint(str::kSetShortcutHint);
     const wchar_t* names[3] = {str::kSetShortcutActivate, str::kSetShortcutGhost, str::kSetShortcutFocus};
     for (int i = 0; i < 3; ++i) {
         sc_check_[i] = MakeCheck(names[i], kScActivate + i * 2);
+        Tip(sc_check_[i], str::kTipShortcutCheck);
         sc_key_[i] = MakeEdit(kScActivateKey + i * 2);
+        SendMessageW(sc_key_[i], EM_SETCUEBANNER, TRUE, reinterpret_cast<LPARAM>(str::kSetShortcutCue));
+        Tip(sc_key_[i], str::kTipShortcutKey);
         sc_status_[i] = MakeLabel(L"");
     }
     apply_sc_ = MakeButton(str::kSetApplyShortcuts, kApplyShortcuts);
+    Tip(apply_sc_, str::kTipApply);
 
-    h_file_ = heading(str::kSetConfigFile);
+    h_file_ = MakeHeading(str::kSetConfigFile);
+    hint_file_ = MakeHint(str::kSetFileHint);
     file_path_ = MakeLabel(L"", SS_PATHELLIPSIS);
     open_folder_ = MakeButton(str::kSetOpenFolder, kOpenFolder);
+    Tip(open_folder_, str::kTipOpenFolder);
+    reset_ = MakeButton(str::kSetResetDefaults, kReset);
+    Tip(reset_, str::kTipReset);
     SettingsChanged();
 }
 
+// Runs the layout until the client size is stable: showing or hiding the scroll bar changes the width.
 void SettingsPage::OnLayout(int width, int height) {
+    if (in_layout_) return;
+    in_layout_ = true;
+    for (int pass = 0; pass < 3; ++pass) {
+        int content = 0;
+        LayoutOnce(width, height, content);
+        const int max_scroll = std::max(0, content - height);
+        const int wanted = std::clamp(scroll_y_, 0, max_scroll);
+        SCROLLINFO info{};
+        info.cbSize = sizeof(info);
+        info.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+        info.nMin = 0;
+        info.nMax = std::max(0, content - 1);
+        info.nPage = static_cast<UINT>(height);
+        info.nPos = wanted;
+        SetScrollInfo(hwnd_, SB_VERT, &info, TRUE);
+        RECT client{};
+        GetClientRect(hwnd_, &client);
+        const bool moved = wanted != scroll_y_;
+        scroll_y_ = wanted;
+        if (!moved && client.right == width && client.bottom == height) break;
+        width = client.right;
+        height = client.bottom;
+    }
+    in_layout_ = false;
+}
+
+void SettingsPage::LayoutOnce(int width, int height, int& content_height) {
     (void)height;
-    const int m = Px(12), gap = Px(6), row = Px(24);
-    const int col_w = (width - 3 * m) / 2;
-    const int label_w = Px(150);
-    int y = m;
+    const int m = Px(12), gap = Px(6), row = Px(24), step = row + gap / 2;
+    const int col_w = std::max(Px(260), (width - 3 * m) / 2);
     int x = m;
-    auto head = [&](HWND h) { y += Px(4); MoveWindow(h, x, y, col_w, row, TRUE); y += row; };
-    auto wide = [&](HWND h) { MoveWindow(h, x, y, col_w, row, TRUE); y += row + gap / 2; };
-    auto pair = [&](HWND l, HWND c, int cw = 0) {
-        MoveWindow(l, x, y + Px(4), label_w, row - Px(4), TRUE);
-        MoveWindow(c, x + label_w, y, cw ? cw : col_w - label_w, Px(240), TRUE);
-        y += row + gap / 2;
+    int y = m - scroll_y_;
+
+    // Label columns are as wide as the longest label in that column, so nothing is clipped at any DPI.
+    auto widest = [&](std::initializer_list<HWND> labels) {
+        int w = 0;
+        for (HWND l : labels) w = std::max(w, TextWidth(l));
+        return std::min(w + Px(14), col_w / 2);
     };
-    head(h_general_);
-    pair(l_theme_, theme_); pair(l_close_, close_); wide(start_window_);
-    head(h_hud_);
+    const int left_labels = widest({l_theme_, l_close_, l_opacity_, l_corner_, l_monitor_, l_fullscreen_, l_retention_, l_trace_});
+    const int right_labels = widest({l_depth_, l_files_, l_width_, l_color_, l_duration_});
+    int label_w = left_labels;
+
+    auto head = [&](HWND h) { y += Px(8); MoveWindow(h, x, y, col_w, row, TRUE); y += row; };
+    auto hint = [&](HWND h) { const int hh = WrappedHeight(h, col_w); MoveWindow(h, x, y, col_w, hh, TRUE); y += hh + gap; };
+    auto wide = [&](HWND h) { MoveWindow(h, x, y, col_w, row, TRUE); y += step; };
+    // Combo boxes are given their drop-down height; every other control keeps the row height.
+    auto pair = [&](HWND l, HWND c, int cw, bool combo) {
+        MoveWindow(l, x, y + Px(4), label_w, row - Px(4), TRUE);
+        MoveWindow(c, x + label_w, y, cw ? cw : col_w - label_w, combo ? Px(240) : row, TRUE);
+        y += step;
+    };
+    auto button_width = [&](HWND b) { return TextWidth(b) + Px(28); };
+
+    // Left column.
+    head(h_general_); hint(hint_general_);
+    pair(l_theme_, theme_, 0, true); pair(l_close_, close_, 0, true); wide(start_window_);
+    head(h_hud_); hint(hint_hud_);
     wide(hud_visible_); wide(hud_expanded_); wide(click_through_);
     MoveWindow(l_opacity_, x, y + Px(4), label_w, row - Px(4), TRUE);
-    MoveWindow(opacity_, x + label_w, y, col_w - label_w - Px(50), row, TRUE);
-    MoveWindow(opacity_value_, x + col_w - Px(46), y + Px(4), Px(46), row - Px(4), TRUE);
-    y += row + gap / 2;
-    pair(l_corner_, corner_); pair(l_monitor_, monitor_); pair(l_fullscreen_, fullscreen_);
-    head(h_ghost_);
-    wide(ghost_enabled_); pair(l_retention_, retention_); pair(l_trace_, trace_); wide(noise_);
-
-    x = 2 * m + col_w;
-    y = m;
-    head(h_unlock_);
-    MoveWindow(reg_, x, y, Px(170), row, TRUE);
-    MoveWindow(unreg_, x + Px(176), y, Px(150), row, TRUE);
-    y += row + gap / 2;
-    MoveWindow(shell_status_, x, y, col_w, row * 2, TRUE);
-    y += row * 2 + gap / 2;
-    pair(l_depth_, depth_, Px(70)); pair(l_files_, files_, Px(90));
-    head(h_focus_);
-    wide(focus_enabled_); pair(l_width_, width_, Px(70)); pair(l_color_, color_, Px(100)); pair(l_duration_, duration_, Px(90));
-    head(h_shortcuts_);
-    for (int i = 0; i < 3; ++i) {
-        MoveWindow(sc_check_[i], x, y, Px(170), row, TRUE);
-        MoveWindow(sc_key_[i], x + Px(176), y, Px(130), row, TRUE);
-        MoveWindow(sc_status_[i], x + Px(312), y + Px(4), std::max(Px(40), col_w - Px(312)), row - Px(4), TRUE);
-        y += row + gap / 2;
+    MoveWindow(opacity_, x + label_w, y, col_w - label_w - Px(48), row, TRUE);
+    MoveWindow(opacity_value_, x + col_w - Px(44), y + Px(4), Px(44), row - Px(4), TRUE);
+    y += step;
+    pair(l_corner_, corner_, 0, true); pair(l_monitor_, monitor_, 0, true); pair(l_fullscreen_, fullscreen_, 0, true);
+    head(h_ghost_); hint(hint_ghost_);
+    wide(ghost_enabled_); pair(l_retention_, retention_, 0, true); pair(l_trace_, trace_, 0, true); wide(noise_);
+    head(h_about_);
+    {
+        const int hh = WrappedHeight(about_text_, col_w);
+        MoveWindow(about_text_, x, y, col_w, hh, TRUE);
+        y += hh + gap;
+        MoveWindow(help_, x, y, button_width(help_), row, TRUE);
+        y += step;
     }
-    MoveWindow(apply_sc_, x, y, Px(150), row, TRUE);
-    y += row + gap;
-    head(h_file_);
+    const int left_end = y;
+
+    // Right column.
+    x = 2 * m + col_w;
+    y = m - scroll_y_;
+    label_w = right_labels;
+    head(h_unlock_); hint(hint_unlock_);
+    {
+        const int w1 = button_width(reg_), w2 = button_width(unreg_);
+        MoveWindow(reg_, x, y, w1, row, TRUE);
+        MoveWindow(unreg_, x + w1 + gap, y, w2, row, TRUE);
+        y += step;
+        const int hh = std::max(row, WrappedHeight(shell_status_, col_w));
+        MoveWindow(shell_status_, x, y, col_w, hh, TRUE);
+        y += hh + gap;
+    }
+    pair(l_depth_, depth_, Px(70), false); pair(l_files_, files_, Px(90), false);
+    head(h_focus_); hint(hint_focus_);
+    wide(focus_enabled_); pair(l_width_, width_, Px(70), false);
+    {
+        MoveWindow(l_color_, x, y + Px(4), label_w, row - Px(4), TRUE);
+        const int sw = Px(28), bw = button_width(color_);
+        MoveWindow(color_swatch_, x + label_w, y + Px(2), sw, row - Px(4), TRUE);
+        MoveWindow(color_, x + label_w + sw + gap, y, bw, row, TRUE);
+        MoveWindow(color_text_, x + label_w + sw + bw + 2 * gap, y + Px(4), Px(80), row - Px(4), TRUE);
+        y += step;
+    }
+    pair(l_duration_, duration_, Px(90), false);
+    head(h_shortcuts_); hint(hint_shortcuts_);
+    {
+        int check_w = 0;
+        for (HWND c : sc_check_) check_w = std::max(check_w, TextWidth(c) + Px(28));
+        const int key_w = Px(130);
+        for (int i = 0; i < 3; ++i) {
+            MoveWindow(sc_check_[i], x, y, check_w, row, TRUE);
+            MoveWindow(sc_key_[i], x + check_w + gap, y, key_w, row, TRUE);
+            const int status_x = check_w + key_w + 2 * gap + gap;
+            MoveWindow(sc_status_[i], x + status_x, y + Px(4), std::max(Px(40), col_w - status_x), row - Px(4), TRUE);
+            y += step;
+        }
+        MoveWindow(apply_sc_, x, y, button_width(apply_sc_), row, TRUE);
+        y += step + gap;
+    }
+    head(h_file_); hint(hint_file_);
     MoveWindow(file_path_, x, y, col_w, row, TRUE);
-    y += row + gap / 2;
-    MoveWindow(open_folder_, x, y, Px(130), row, TRUE);
+    y += step;
+    {
+        const int w1 = button_width(open_folder_), w2 = button_width(reset_);
+        MoveWindow(open_folder_, x, y, w1, row, TRUE);
+        MoveWindow(reset_, x + w1 + gap, y, w2, row, TRUE);
+        y += step;
+    }
+    content_height = std::max(left_end, y) + m + scroll_y_;
+}
+
+void SettingsPage::ScrollTo(int position) {
+    if (position == scroll_y_) return;
+    RECT client{};
+    GetClientRect(hwnd_, &client);
+    scroll_y_ = std::max(0, position);   // OnLayout clamps to the content height
+    OnLayout(client.right, client.bottom);
+}
+
+HBRUSH SettingsPage::OnControlColor(HWND control) { return control == color_swatch_ ? swatch_brush_ : nullptr; }
+
+void SettingsPage::UpdateSwatch() {
+    std::uint32_t rgb = 0;
+    const std::string& text = ctx_.settings.Get().focus.highlight_color;
+    (void)ParseColor(text, rgb);
+    if (swatch_brush_) DeleteObject(swatch_brush_);
+    swatch_brush_ = CreateSolidBrush(RGB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF));
+    SetText(color_text_, Utf8ToWide(text));
+    InvalidateRect(color_swatch_, nullptr, TRUE);
+}
+
+void SettingsPage::Accept() {
+    const HWND focused = GetFocus();
+    if (focused == depth_ || focused == files_ || focused == width_ || focused == duration_) ReadNumbers();
 }
 
 void SettingsPage::SettingsChanged() {
@@ -197,6 +346,7 @@ void SettingsPage::SettingsChanged() {
     }
     SetText(file_path_, ctx_.settings.Path() + (ctx_.settings.IsPortable() ? L"  (portable)" : L"  (user profile)"));
     loading_ = false;
+    UpdateSwatch();
     UpdateShellStatus();
     UpdateShortcutStatus();
 }
@@ -233,7 +383,29 @@ void SettingsPage::ReadNumbers() {
     });
 }
 
-void SettingsPage::OnMessage(UINT message, WPARAM, LPARAM lparam) {
+void SettingsPage::OnMessage(UINT message, WPARAM wparam, LPARAM lparam) {
+    if (message == WM_VSCROLL && lparam == 0) {
+        SCROLLINFO info{};
+        info.cbSize = sizeof(info);
+        info.fMask = SIF_ALL;
+        GetScrollInfo(hwnd_, SB_VERT, &info);
+        int position = info.nPos;
+        switch (LOWORD(wparam)) {
+            case SB_LINEUP: position -= Px(24); break;
+            case SB_LINEDOWN: position += Px(24); break;
+            case SB_PAGEUP: position -= static_cast<int>(info.nPage); break;
+            case SB_PAGEDOWN: position += static_cast<int>(info.nPage); break;
+            case SB_THUMBTRACK: case SB_THUMBPOSITION: position = info.nTrackPos; break;
+            case SB_TOP: position = 0; break;
+            case SB_BOTTOM: position = info.nMax; break;
+        }
+        ScrollTo(position);
+        return;
+    }
+    if (message == WM_MOUSEWHEEL) {
+        ScrollTo(scroll_y_ - GET_WHEEL_DELTA_WPARAM(wparam) * Px(48) / WHEEL_DELTA);
+        return;
+    }
     if (message == WM_HSCROLL && reinterpret_cast<HWND>(lparam) == opacity_) {
         const int value = static_cast<int>(SendMessageW(opacity_, TBM_GETPOS, 0, 0));
         SetText(opacity_value_, std::to_wstring(value) + L"%");
@@ -311,6 +483,15 @@ void SettingsPage::OnCommand(int id, int code, HWND) {
                     s.shortcuts.focus = {Checked(sc_check_[2]), keys[2]};
                 });
             }
+            break;
+        case kReset:
+            if (clicked && MessageBoxW(hwnd_, str::kSetResetConfirm, str::kAppName, MB_YESNO | MB_ICONQUESTION) == IDYES) {
+                ctx_.settings.Reset();
+                ctx_.host.Execute(Command::SettingsChanged);
+            }
+            break;
+        case kHelp:
+            if (clicked) ctx_.navigator.ShowHelp();
             break;
         case kOpenFolder:
             if (clicked) RevealInExplorer(hwnd_, ctx_.settings.Path());

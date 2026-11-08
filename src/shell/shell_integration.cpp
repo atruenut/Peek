@@ -18,11 +18,24 @@ struct Verb {
 
 // Each verb is registered for files ("*") and folders ("Directory").
 const Verb kVerbs[] = {
-    {L"Software\\Classes\\*\\shell", L"Peek.WhoIsLocking", L"Peek: Who is locking this?", L"--who-locks"},
-    {L"Software\\Classes\\*\\shell", L"Peek.InspectFile", L"Peek: Inspect file", L"--inspect-file"},
-    {L"Software\\Classes\\Directory\\shell", L"Peek.WhoIsLocking", L"Peek: Who is locking files in this folder?", L"--who-locks"},
-    {L"Software\\Classes\\Directory\\shell", L"Peek.InspectFile", L"Peek: Inspect folder", L"--inspect-file"},
+    {L"Software\\Classes\\*\\shell", L"PeekII.WhoIsLocking", L"PeekII: Who is locking this?", L"--who-locks"},
+    {L"Software\\Classes\\*\\shell", L"PeekII.InspectFile", L"PeekII: Inspect file", L"--inspect-file"},
+    {L"Software\\Classes\\Directory\\shell", L"PeekII.WhoIsLocking", L"PeekII: Who is locking files in this folder?", L"--who-locks"},
+    {L"Software\\Classes\\Directory\\shell", L"PeekII.InspectFile", L"PeekII: Inspect folder", L"--inspect-file"},
 };
+
+// Verb keys written by pre-rename builds ("Peek"). They are removed on register/unregister so an upgrade
+// does not leave duplicate Explorer entries pointing at an old executable.
+const wchar_t* const kLegacyKeys[] = {
+    L"Software\\Classes\\*\\shell\\Peek.WhoIsLocking",
+    L"Software\\Classes\\*\\shell\\Peek.InspectFile",
+    L"Software\\Classes\\Directory\\shell\\Peek.WhoIsLocking",
+    L"Software\\Classes\\Directory\\shell\\Peek.InspectFile",
+};
+
+void RemoveLegacyVerbs() {
+    for (const wchar_t* key : kLegacyKeys) RegDeleteTreeW(HKEY_CURRENT_USER, key);
+}
 
 std::wstring KeyPath(const Verb& verb) { return std::wstring(verb.base) + L"\\" + verb.key; }
 
@@ -47,7 +60,7 @@ std::wstring ReadDefault(const std::wstring& path) {
     return buffer;
 }
 
-// Extracts the executable from `"C:\path\Peek.exe" --who-locks "%1"`.
+// Extracts the executable from `"C:\path\PeekII.exe" --who-locks "%1"`.
 std::wstring ExeFromCommand(const std::wstring& command) {
     if (command.size() < 2 || command[0] != L'"') return {};
     const std::size_t end = command.find(L'"', 1);
@@ -73,6 +86,7 @@ ShellIntegration::Status ShellIntegration::Query(const std::wstring& exe_path) {
 
 bool ShellIntegration::Register(const std::wstring& exe_path, std::wstring& error) {
     error.clear();
+    RemoveLegacyVerbs();
     for (const Verb& verb : kVerbs) {
         HKEY key{};
         if (RegCreateKeyExW(HKEY_CURRENT_USER, KeyPath(verb).c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr) != ERROR_SUCCESS) {
@@ -83,7 +97,7 @@ bool ShellIntegration::Register(const std::wstring& exe_path, std::wstring& erro
         }
         bool ok = SetDefault(key, verb.label);
         ok = SetValue(key, L"Icon", L"\"" + exe_path + L"\",0") && ok;
-        ok = SetValue(key, L"MultiSelectModel", L"Document") && ok;   // one launch per item; Peek merges them
+        ok = SetValue(key, L"MultiSelectModel", L"Document") && ok;   // one launch per item; PeekII merges them
         RegCloseKey(key);
 
         HKEY command{};
@@ -108,6 +122,7 @@ bool ShellIntegration::Register(const std::wstring& exe_path, std::wstring& erro
 bool ShellIntegration::Unregister(std::wstring& error) {
     error.clear();
     bool ok = true;
+    RemoveLegacyVerbs();
     for (const Verb& verb : kVerbs) {
         const LSTATUS status = RegDeleteTreeW(HKEY_CURRENT_USER, KeyPath(verb).c_str());
         if (status != ERROR_SUCCESS && status != ERROR_FILE_NOT_FOUND) {

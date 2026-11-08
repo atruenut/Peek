@@ -139,8 +139,8 @@ std::wstring FocusAsC(const FocusSnapshot& s) {
     const AutomationInfo& a = s.automation;
     const RECT& r = a.bounds_valid ? a.bounds : s.window.bounds;
     std::wstringstream out;
-    out << L"// Captured by Peek Focus. Bounds are screen pixels (UI Automation bounds when available, else the window).\n"
-        << L"typedef struct PeekElement {\n"
+    out << L"// Captured by PeekII Focus. Bounds are screen pixels (UI Automation bounds when available, else the window).\n"
+        << L"typedef struct PeekIIElement {\n"
         << L"    const wchar_t* window_class;\n"
         << L"    const wchar_t* window_title;\n"
         << L"    const wchar_t* automation_id;\n"
@@ -148,8 +148,8 @@ std::wstring FocusAsC(const FocusSnapshot& s) {
         << L"    const wchar_t* name;\n"
         << L"    unsigned long pid;\n"
         << L"    long left, top, right, bottom;\n"
-        << L"} PeekElement;\n\n"
-        << L"static const PeekElement kPeekElement = {\n"
+        << L"} PeekIIElement;\n\n"
+        << L"static const PeekIIElement kPeekIIElement = {\n"
         << L"    L\"" << CEscape(s.window.class_name) << L"\",\n"
         << L"    L\"" << CEscape(s.window.title) << L"\",\n"
         << L"    L\"" << CEscape(a.automation_id) << L"\",\n"

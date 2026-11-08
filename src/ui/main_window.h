@@ -38,6 +38,9 @@ public:
     void OpenGhostEvent(std::uint64_t sequence) override;
     void OpenFocusForWindow(HWND hwnd) override;
     void OpenUnlock(const std::vector<std::wstring>& paths, bool inspect) override;
+    void ShowHelp() override;
+    // F1 from anywhere inside the window.
+    [[nodiscard]] bool Owns(HWND hwnd) const { return hwnd_ && (hwnd == hwnd_ || IsChild(hwnd_, hwnd)); }
 
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
@@ -48,6 +51,7 @@ private:
     void Paint(HDC dc);
     [[nodiscard]] int TabHeight() const;
     [[nodiscard]] RECT TabRect(int index) const;
+    [[nodiscard]] RECT HelpRect() const;
     [[nodiscard]] Page* PageFor(Tab tab) const;
 
     CommandHost& host_;

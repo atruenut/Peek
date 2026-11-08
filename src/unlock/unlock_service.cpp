@@ -15,8 +15,8 @@ namespace {
 std::wstring RestartManagerError(DWORD status) {
     switch (status) {
         case ERROR_ACCESS_DENIED:
-            return L"Access denied. Peek can only see locks held by processes it is allowed to query. "
-                   L"Run Peek as administrator to inspect files used by elevated programs.";
+            return L"Access denied. PeekII can only see locks held by processes it is allowed to query. "
+                   L"Run PeekII as administrator to inspect files used by elevated programs.";
         case ERROR_FILE_NOT_FOUND:
         case ERROR_PATH_NOT_FOUND: return L"The file or folder no longer exists.";
         case ERROR_MAX_SESSIONS_REACHED:

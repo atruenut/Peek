@@ -22,6 +22,9 @@ void ProcessPage::OnCreate() {
     open_window_ = MakeButton(str::kBtnShowWindow, kOpenWindow);
     inspect_ = MakeButton(str::kBtnInspectWindow, kInspectWindow);
     events_ = MakeButton(str::kBtnShowInGhost, kShowEvents);
+    Tip(back_, str::kTipBack); Tip(refresh_, str::kTipRefresh); Tip(cmd_, str::kTipCmdLine); Tip(copy_, str::kTipCopyDetails);
+    Tip(location_, str::kTipOpenLocation); Tip(open_window_, str::kTipShowOwner); Tip(inspect_, str::kTipInspectWindow);
+    Tip(events_, str::kTipShowEvents);
     for (HWND h : {back_, refresh_, cmd_, copy_, location_, open_window_, inspect_, events_}) EnableWindow(h, FALSE);
 }
 

@@ -9,7 +9,7 @@ namespace peek {
 // Explorer context menu entries, registered per user under HKCU\Software\Classes (no administrator rights,
 // nothing written outside the registry, fully removable). These are classic shell verbs: on Windows 11
 // they appear under "Show more options". Selecting several files starts the command once per file; the
-// running Peek instance merges those requests into one investigation (see App).
+// running PeekII instance merges those requests into one investigation (see App).
 class ShellIntegration {
 public:
     struct Status {

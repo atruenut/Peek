@@ -74,6 +74,9 @@ void UnlockPage::OnCreate() {
     location_ = MakeButton(str::kBtnOpenLocation, kLocation);
     close_ = MakeButton(str::kBtnAskClose, kClose);
     end_ = MakeButton(str::kBtnEndProcess, kEnd);
+    Tip(add_files_, str::kTipAddFiles); Tip(add_folder_, str::kTipAddFolder); Tip(clear_, str::kTipClearTargets);
+    Tip(check_, str::kTipCheckAgain); Tip(process_, str::kTipProcessDetails); Tip(show_window_, str::kTipShowOwner);
+    Tip(location_, str::kTipOpenLocation); Tip(close_, str::kTipAskClose); Tip(end_, str::kTipEndProcess);
     DragAcceptFiles(hwnd_, TRUE);
     SetText(detail_, str::kUnlockEmpty);
     UpdateButtons();
@@ -232,7 +235,7 @@ void UnlockPage::UpdateDetail() {
         text += std::wstring(L"Type: ") + AppTypeText(group->owner.app_type) + L"\r\n";
         if (!group->owner.service_name.empty()) text += L"Service: " + group->owner.service_name + L"\r\n";
         text += L"Restart Manager can restart it: " + std::wstring(group->owner.restartable ? L"yes" : L"no") + L"\r\n";
-        if (!p.accessible) text += L"Some details are unavailable: Windows denied access to this process. Run Peek as administrator to see more.\r\n";
+        if (!p.accessible) text += L"Some details are unavailable: Windows denied access to this process. Run PeekII as administrator to see more.\r\n";
         if (UnlockService::IsProtected(group->owner)) text += std::wstring(L"\r\n") + str::kProtectedNote + L"\r\n";
         text += L"\r\nFiles held (" + std::to_wstring(group->files.size()) + L"):\r\n";
         constexpr std::size_t kShown = 40;

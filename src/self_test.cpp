@@ -37,7 +37,7 @@ void WriteUtf8(const std::wstring& path, const std::wstring& text) {
 
 std::wstring DefaultReportPath() {
     wchar_t temp[MAX_PATH]{}; GetTempPathW(static_cast<DWORD>(std::size(temp)), temp);
-    return std::wstring(temp) + L"Peek-selftest.txt";
+    return std::wstring(temp) + L"PeekII-selftest.txt";
 }
 
 } // namespace
@@ -120,7 +120,7 @@ int RunSelfTest(const std::wstring& requested_report_path) {
     DeleteFileW(temp_file);
 
     // Focus test against a native Win32 button, including UI Automation enrichment.
-    HWND host = CreateWindowExW(WS_EX_TOOLWINDOW, L"STATIC", L"Peek Focus test", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+    HWND host = CreateWindowExW(WS_EX_TOOLWINDOW, L"STATIC", L"PeekII Focus test", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                 80, 80, 320, 180, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
     HWND button = host ? CreateWindowExW(0, L"BUTTON", L"Inspect me", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                                           60, 55, 160, 40, host, nullptr, GetModuleHandleW(nullptr), nullptr) : nullptr;
@@ -169,7 +169,7 @@ int RunSelfTest(const std::wstring& requested_report_path) {
     if (host) DestroyWindow(host);
 
     bool all_passed = true;
-    std::wstring report = L"Peek self-test\r\n==============\r\n";
+    std::wstring report = L"PeekII self-test\r\n==============\r\n";
     for (const auto& check : checks) {
         all_passed &= check.passed;
         report += check.passed ? L"PASS  " : L"FAIL  ";

@@ -47,17 +47,17 @@ std::wstring ResolvePath(const std::wstring& explicit_path, bool& portable) {
         return explicit_path;
     }
     const std::wstring exe_dir = ExeDirectory();
-    if (!exe_dir.empty() && DirectoryWritable(exe_dir)) return exe_dir + L"\\Peek.ini";
+    if (!exe_dir.empty() && DirectoryWritable(exe_dir)) return exe_dir + L"\\PeekII.ini";
     portable = false;
     wchar_t* appdata = nullptr;
     std::wstring directory;
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appdata)) && appdata) {
-        directory = std::wstring(appdata) + L"\\Peek";
+        directory = std::wstring(appdata) + L"\\PeekII";
     }
     if (appdata) CoTaskMemFree(appdata);
-    if (directory.empty()) return exe_dir + L"\\Peek.ini";
+    if (directory.empty()) return exe_dir + L"\\PeekII.ini";
     CreateDirectoryW(directory.c_str(), nullptr);
-    return directory + L"\\Peek.ini";
+    return directory + L"\\PeekII.ini";
 }
 
 } // namespace
@@ -131,7 +131,7 @@ bool SettingsManager::Save() {
     std::string text;
     {
         std::lock_guard lock(mutex_);
-        text = "; Peek settings. Safe to edit by hand while Peek is not running.\r\n"
+        text = "; PeekII settings. Safe to edit by hand while PeekII is not running.\r\n"
                "; Invalid values are repaired when the file is loaded.\r\n\r\n" + ToIni(settings_).Serialize();
     }
     std::wstring error;

@@ -18,7 +18,7 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
 ## Start here: first run on Windows
 
 1. `build.bat` then `test.bat`. If a self-test line fails, its detail says which API call to look at.
-2. Launch `Peek.exe`. If nothing shows, check the tray; the HUD defaults to top-right of the primary monitor.
+2. Launch `PeekII.exe`. If nothing shows, check the tray; the HUD defaults to top-right of the primary monitor.
 3. Walk through [TESTING.md](TESTING.md). Record failures below.
 
 ### Things I am least sure about (most likely to need a fix)
@@ -35,14 +35,21 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
    "borderless window covers the monitor" check. Verify with games, video players and borderless windows.
 6. **Explorer multi-select merge**: Explorer starts one process per file; `App::QueueInvestigation` waits 400 ms
    and merges them. If a slow machine splits one selection into several investigations, raise the delay.
-   Single-instance forwarding uses a named mutex plus `WM_COPYDATA` to the hidden `Peek.Controller` window.
+   Single-instance forwarding uses a named mutex plus `WM_COPYDATA` to the hidden `PeekII.Controller` window.
 7. **UI Automation**: all UIA objects live on one MTA worker thread. Verify Live mode is not sluggish on
    Chromium/Electron windows (50 ms poll, 1.5 s UIA timeouts) and that Pinned tracking follows window moves.
 8. **WMI** (`GhostMonitor::WmiLoop`): carried over from the original and restructured onto its own thread. Verify
    process events as a standard user and elevated; the polling fallback should engage when access is denied.
 9. **Focus tree expand**: `TVN_ITEMEXPANDING` is cancelled for unloaded nodes and the expander opens when
    `ApplyTree` delivers children. Confirm this does not loop or leave nodes stuck.
-10. **ARM64**: `build.bat arm64` needs an `aarch64-w64-mingw32` toolchain; never built.
+10. **New in the PeekII pass (all untested on Windows)**: Settings scrolling (`SettingsPage::OnLayout`: `SetScrollInfo` on a page
+    created with `WS_VSCROLL`; check the scroll bar appears only when needed and the wheel works), tooltips
+    (`Page::Tip`, `TTM_ADDTOOLW` with `TTF_IDISHWND`; check they appear on hover and in dark mode), F1 handling (handled in the
+    message loop in `App::Run`, because it is not certain that child controls forward `WM_HELP`), the "? Help (F1)" link in the
+    tab strip, the color swatch (`WM_CTLCOLORSTATIC` returning a brush), Enter-to-commit in number fields (`IDOK` from
+    `IsDialogMessage` routed to `Page::Accept`), and the multi-size icon (PNG-compressed ICO entries; check the tray, title bar
+    and taskbar icons).
+11. **ARM64**: `build.bat arm64` needs an `aarch64-w64-mingw32` toolchain; never built.
 
 ## Decisions worth knowing
 
@@ -53,10 +60,10 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
   "Inspect file" additionally shows file details.
 - **Restart Manager** is used to *identify* owners only. `RmShutdown` can close other registered apps and services,
   so "Ask to close" posts `WM_CLOSE` to the owner's own windows instead. Services/Explorer/critical processes are never offered.
-- **Retry**: "Check again" re-runs the investigation; Peek does not re-run your file operation itself.
+- **Retry**: "Check again" re-runs the investigation; PeekII does not re-run your file operation itself.
 - **Settings removed**: `Focus.State` (Frozen/Pinned refer to a live element and cannot be restored on restart) and
   `Focus.MouseGesture` (not implemented; the spec made it optional). Added `Ghost.GroupByLifecycle`.
-- **Focus freeze without a hotkey**: Peek's own windows are ignored in Live mode, so moving the pointer onto Peek
+- **Focus freeze without a hotkey**: PeekII's own windows are ignored in Live mode, so moving the pointer onto PeekII
   keeps the last target and you can press Freeze/Pin. Holding Shift also holds the target (polled while Live only; no hooks).
 - **Trace mode** currently adds raw window create events and command-line capture. Timed modes expire in `GhostMonitor`.
 - **Noise reduction**: only visible windows' show/hide/destroy are reported; see `docs/REDESIGN_PLAN.md`.
@@ -80,5 +87,14 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
   member `controller_` (still null during `CreateWindowExW`) to `DefWindowProc` for `WM_NCCREATE`, so creation failed. Fixed by
   storing the handle in `WM_NCCREATE`. Startup errors now name the window that failed and include the Windows error code.
   Lesson: every window procedure must use the `hwnd` parameter or set its member handle in `WM_NCCREATE`. All six window classes were checked.
+
+- 2026-11-08: Settings tab rendered the number boxes and the "Choose..." button as tall blank blocks (screenshot from the first
+  successful launch). Cause: the layout helper used one height (240 DIP, meant for combo drop-downs) for every control, and edit
+  boxes had no border. Fixed: combos alone get the drop-down height, edits have a client edge, label columns are measured from
+  the text, hints wrap by measured height, and the page scrolls when it is taller than the window. Rest of the UI work in that
+  pass: tooltips on every control, section hints, F1 help, color swatch, Reset to defaults, friendlier WMI message.
+- 2026-11-08: renamed Peek -> PeekII (exe, INI, window classes, mutex, Explorer verbs, resources) and replaced the icon
+  (`scripts/generate-brand-assets.py`). Old `Peek.*` Explorer verbs are removed on register/unregister. An old `Peek.ini` is NOT
+  migrated; settings start from defaults.
 
 (Add further dated notes here.)

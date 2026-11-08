@@ -3,9 +3,11 @@
 #include <uxtheme.h>
 #include <windowsx.h>
 
+#include <algorithm>
+
 namespace peek {
 namespace {
-constexpr wchar_t kPageClass[] = L"Peek.Page";
+constexpr wchar_t kPageClass[] = L"PeekII.Page";
 }
 
 bool Page::Create(HWND parent, HINSTANCE instance) {
@@ -17,7 +19,7 @@ bool Page::Create(HWND parent, HINSTANCE instance) {
     wc.lpszClassName = kPageClass;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
-    hwnd_ = CreateWindowExW(WS_EX_CONTROLPARENT, kPageClass, L"", WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+    hwnd_ = CreateWindowExW(WS_EX_CONTROLPARENT, kPageClass, L"", WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | ExtraStyle(),
                             0, 0, 10, 10, parent, nullptr, instance, this);
     return hwnd_ != nullptr;
 }
@@ -34,6 +36,12 @@ void Page::SetAppearance(const Theme& theme, UINT dpi, HFONT font) {
     font_ = font;
     if (background_brush_) DeleteObject(background_brush_);
     if (surface_brush_) DeleteObject(surface_brush_);
+    if (bold_font_) { DeleteObject(bold_font_); bold_font_ = nullptr; }
+    LOGFONTW face{};
+    if (font && GetObjectW(font, sizeof(face), &face)) {
+        face.lfWeight = FW_SEMIBOLD;
+        bold_font_ = CreateFontIndirectW(&face);
+    }
     background_brush_ = CreateSolidBrush(theme_.background);
     surface_brush_ = CreateSolidBrush(theme_.surface);
     if (!hwnd_) return;
@@ -51,6 +59,7 @@ void Page::RestyleChildren() {
         return TRUE;
     }, reinterpret_cast<LPARAM>(font_));
     for (auto& [control, kind] : styled_) StyleControl(control, kind);
+    if (bold_font_) for (HWND heading : headings_) SendMessageW(heading, WM_SETFONT, reinterpret_cast<WPARAM>(bold_font_), TRUE);
 }
 
 HWND Page::Track(HWND control) {
@@ -101,7 +110,7 @@ HWND Page::MakeCheck(const wchar_t* text, int id) {
 }
 
 HWND Page::MakeEdit(int id, DWORD extra_style) {
-    HWND edit = Track(CreateWindowExW(0, L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL | extra_style, 0, 0, 10, 10,
+    HWND edit = Track(CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL | extra_style, 0, 0, 10, 10,
                                       hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
     styled_.emplace_back(edit, L"CFD");
     return edit;
@@ -138,6 +147,60 @@ HWND Page::MakeText(int id) {
                                       0, 0, 10, 10, hwnd_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr));
     styled_.emplace_back(text, L"CFD");
     return text;
+}
+
+HWND Page::MakeHeading(const wchar_t* text) {
+    HWND heading = MakeLabel(text, SS_LEFT);
+    headings_.push_back(heading);
+    if (bold_font_) SendMessageW(heading, WM_SETFONT, reinterpret_cast<WPARAM>(bold_font_), FALSE);
+    return heading;
+}
+
+HWND Page::MakeHint(const wchar_t* text) {
+    HWND hint = MakeLabel(text, SS_LEFT);
+    hints_.push_back(hint);
+    return hint;
+}
+
+void Page::Tip(HWND control, const wchar_t* text) {
+    if (!control || !text) return;
+    if (!tooltip_) {
+        tooltip_ = CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP, CW_USEDEFAULT,
+                                   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hwnd_, nullptr, instance_, nullptr);
+        if (!tooltip_) return;
+        SendMessageW(tooltip_, TTM_SETMAXTIPWIDTH, 0, 360);
+        SendMessageW(tooltip_, TTM_SETDELAYTIME, TTDT_INITIAL, 500);
+        SendMessageW(tooltip_, TTM_SETDELAYTIME, TTDT_AUTOPOP, 20000);
+    }
+    TOOLINFOW tool{};
+    tool.cbSize = sizeof(tool);
+    tool.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+    tool.hwnd = hwnd_;
+    tool.uId = reinterpret_cast<UINT_PTR>(control);
+    tool.lpszText = const_cast<wchar_t*>(text);
+    SendMessageW(tooltip_, TTM_ADDTOOLW, 0, reinterpret_cast<LPARAM>(&tool));
+}
+
+int Page::TextWidth(HWND control) const {
+    HDC dc = GetDC(hwnd_);
+    HGDIOBJ old = SelectObject(dc, font_ ? font_ : GetStockObject(DEFAULT_GUI_FONT));
+    const std::wstring text = GetText(control);
+    SIZE size{};
+    GetTextExtentPoint32W(dc, text.c_str(), static_cast<int>(text.size()), &size);
+    SelectObject(dc, old);
+    ReleaseDC(hwnd_, dc);
+    return size.cx;
+}
+
+int Page::WrappedHeight(HWND control, int width) const {
+    HDC dc = GetDC(hwnd_);
+    HGDIOBJ old = SelectObject(dc, font_ ? font_ : GetStockObject(DEFAULT_GUI_FONT));
+    const std::wstring text = GetText(control);
+    RECT box{0, 0, std::max(width, 20), 0};
+    DrawTextW(dc, text.c_str(), static_cast<int>(text.size()), &box, DT_CALCRECT | DT_WORDBREAK | DT_NOPREFIX);
+    SelectObject(dc, old);
+    ReleaseDC(hwnd_, dc);
+    return box.bottom;
 }
 
 void Page::AddColumn(HWND list, int index, const wchar_t* title, int width_dips, int format) {
@@ -201,7 +264,11 @@ LRESULT Page::Handle(UINT message, WPARAM wparam, LPARAM lparam) {
         case WM_CTLCOLORSTATIC:
         case WM_CTLCOLORBTN: {
             HDC dc = reinterpret_cast<HDC>(wparam);
-            SetTextColor(dc, theme_.text);
+            if (message == WM_CTLCOLORSTATIC) {
+                if (HBRUSH custom = OnControlColor(reinterpret_cast<HWND>(lparam))) return reinterpret_cast<LRESULT>(custom);
+            }
+            const bool hint = std::find(hints_.begin(), hints_.end(), reinterpret_cast<HWND>(lparam)) != hints_.end();
+            SetTextColor(dc, hint ? theme_.muted : theme_.text);
             SetBkColor(dc, theme_.background);
             return reinterpret_cast<LRESULT>(background_brush_);
         }
@@ -213,6 +280,7 @@ LRESULT Page::Handle(UINT message, WPARAM wparam, LPARAM lparam) {
             return reinterpret_cast<LRESULT>(surface_brush_);
         }
         case WM_DESTROY:
+            if (bold_font_) { DeleteObject(bold_font_); bold_font_ = nullptr; }
             if (background_brush_) { DeleteObject(background_brush_); background_brush_ = nullptr; }
             if (surface_brush_) { DeleteObject(surface_brush_); surface_brush_ = nullptr; }
             break;

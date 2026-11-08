@@ -1,10 +1,10 @@
 @echo off
-rem Peek build script. Requires a MinGW-w64 GCC/G++ toolchain on PATH.
+rem PeekII build script. Requires a MinGW-w64 GCC/G++ toolchain on PATH.
 rem
 rem Usage:
 rem   build.bat [x64|arm64] [release|debug]
 rem
-rem Output: build\<arch>\Peek.exe
+rem Output: build\<arch>\PeekII.exe
 rem
 rem Toolchains:
 rem   x64   - x86_64-w64-mingw32-g++, or plain g++ from an MSYS2 MinGW shell
@@ -68,7 +68,7 @@ echo Compiler : %CXX%
 echo Config   : %ARCH% %CONFIG%
 
 echo Compiling resources...
-"%RC%" -O coff -I resources resources\peek.rc -o "%OUT%\obj\peek_res.o"
+"%RC%" -O coff -I resources resources\peekii.rc -o "%OUT%\obj\peekii_res.o"
 if errorlevel 1 exit /b 1
 
 set "OBJECTS="
@@ -87,12 +87,12 @@ if "%FAILED%"=="1" (
 )
 
 echo Linking...
-"%CXX%" -municode -mwindows -static -static-libgcc -static-libstdc++ %LINKOPT% !OBJECTS! "%OUT%\obj\peek_res.o" -o "%OUT%\Peek.exe" ^
+"%CXX%" -municode -mwindows -static -static-libgcc -static-libstdc++ %LINKOPT% !OBJECTS! "%OUT%\obj\peekii_res.o" -o "%OUT%\PeekII.exe" ^
     -lcomctl32 -ldwmapi -lole32 -loleaut32 -lshell32 -lshlwapi -lcomdlg32 -lrstrtmgr -lwbemuuid -lpsapi -ladvapi32 -lgdi32 -luser32 -luuid -luxtheme -lshcore -lcomdlg32 -luuid
 if errorlevel 1 (
     echo Link failed.
     exit /b 1
 )
 
-echo Built %OUT%\Peek.exe
+echo Built %OUT%\PeekII.exe
 exit /b 0

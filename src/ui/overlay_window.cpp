@@ -6,7 +6,7 @@
 
 namespace peek {
 namespace {
-constexpr wchar_t kClassName[] = L"Peek.FocusOverlay";
+constexpr wchar_t kClassName[] = L"PeekII.FocusOverlay";
 constexpr UINT_PTR kExpireTimer = 1;
 }
 
@@ -20,7 +20,7 @@ bool OverlayWindow::Create(HINSTANCE instance) {
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
     hwnd_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-                            kClassName, L"Peek highlight", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance, this);
+                            kClassName, L"PeekII highlight", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance, this);
     if (!hwnd_) return false;
     SetLayeredWindowAttributes(hwnd_, 0, 230, LWA_ALPHA);
     return true;

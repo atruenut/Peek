@@ -5,10 +5,10 @@
 namespace peek {
 
 const wchar_t* UsageText() {
-    return L"Peek - Windows observation and investigation utility\n\n"
-           L"Usage: Peek.exe [options]\n\n"
-           L"  --show                    Open the Peek window at startup\n"
-           L"  --config <file>           Use this settings file instead of Peek.ini next to the program\n"
+    return L"PeekII - Windows observation and investigation utility\n\n"
+           L"Usage: PeekII.exe [options]\n\n"
+           L"  --show                    Open the PeekII window at startup\n"
+           L"  --config <file>           Use this settings file instead of PeekII.ini next to the program\n"
            L"  --who-locks <path>        Find which processes are using a file or folder\n"
            L"  --inspect-file <path>     Show file details and which processes are using it\n"
            L"  --register-shell          Add the Explorer context menu entries for the current user\n"

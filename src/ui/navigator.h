@@ -17,6 +17,7 @@ public:
     virtual void OpenGhostEvent(std::uint64_t sequence) = 0;             // Ghost tab, event selected
     virtual void OpenFocusForWindow(HWND hwnd) = 0;                      // Focus tab, window pinned
     virtual void OpenUnlock(const std::vector<std::wstring>& paths, bool inspect) = 0;
+    virtual void ShowHelp() = 0;                                         // help for the current tab (F1)
 };
 
 } // namespace peek

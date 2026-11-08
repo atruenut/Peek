@@ -9,8 +9,8 @@
 namespace peek {
 
 // Owns the live Settings and the portable INI file behind them.
-// The file is Peek.ini next to the executable (portable use, e.g. from a USB drive). If that folder is
-// not writable the file lives in %APPDATA%\Peek instead. Thread safe.
+// The file is PeekII.ini next to the executable (portable use, e.g. from a USB drive). If that folder is
+// not writable the file lives in %APPDATA%\PeekII instead. Thread safe.
 class SettingsManager {
 public:
     // `explicit_path` (from --config) overrides the location when non-empty.

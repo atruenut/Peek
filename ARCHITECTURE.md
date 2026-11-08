@@ -1,4 +1,4 @@
-# Peek architecture
+# PeekII architecture
 
 Read [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md) for the audit and decisions, [docs/DEVLOG.md](docs/DEVLOG.md) for status.
 
@@ -40,5 +40,5 @@ resolves to a `ProcessIdentity` (PID + creation time) and `DescribeProcess()` pr
 ## Security and privacy posture
 
 No network, no telemetry, no automatic elevation, no debug privilege. Captured data stays in memory; only
-settings are written (Peek.ini). Password-field values are never read by Focus. Termination requires an explicit
+settings are written (PeekII.ini). Password-field values are never read by Focus. Termination requires an explicit
 confirmation and re-checks PID + creation time; services, Explorer and critical processes are not offered.
