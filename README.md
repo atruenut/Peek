@@ -86,8 +86,8 @@ keyboard or mouse hooks.
 
 Ready-made Windows x64 builds are on the [Releases page](https://github.com/atruenut/Peek/releases). Download
 `PeekII.exe` (check it against `SHA256SUMS.txt`) and run it; no installer is needed. The executable is not code-signed,
-so Windows SmartScreen may ask you to confirm ("More info" > "Run anyway"). Pushing a tag such as `v0.2.1` makes the
-GitHub workflow build and publish a new release automatically.
+so Windows SmartScreen may ask you to confirm ("More info" > "Run anyway"). Pushing a tag such as `v0.2.1`, or
+running the "Windows build" workflow by hand with a `release_tag`, builds on Windows and publishes the release.
 
 ## Build
 

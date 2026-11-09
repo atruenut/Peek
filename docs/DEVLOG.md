@@ -107,6 +107,6 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
 - 2026-11-08: global shortcuts are on by default, as `Ctrl+Alt+Shift+P/G/F` (the old Ctrl+Shift keys would have taken Firefox/VS Code
   shortcuts system-wide). `General/SettingsVersion=2` marks files that record the user's own choice; older files' shortcut entries
   are ignored once so existing installs pick up the new defaults. Releases: tag push -> `release` job in the workflow (never run yet);
-  v0.2.0 was also published by hand from the Linux cross-compiled binary.
+  the session that wrote this could not push tags or create releases (blocked), so the first release has to be started from GitHub: Actions > Windows build > Run workflow > release_tag `v0.2.0`.
 
 (Add further dated notes here.)
