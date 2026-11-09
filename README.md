@@ -1,4 +1,4 @@
-<img src="docs/images/peekii-icon.png" width="96" height="96" alt="PeekII icon" align="right">
+<img src="docs/images/peekii-icon.png" width="96" height="96" alt="PeekII icon" align="center">
 
 # PeekII
 
