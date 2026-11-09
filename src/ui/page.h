@@ -62,6 +62,7 @@ protected:
     virtual LRESULT OnNotify(NMHDR* header) { (void)header; return 0; }
     virtual void OnMessage(UINT, WPARAM, LPARAM) {}
     virtual void OnAppearance() {}
+    virtual bool RepaintOnResize() const { return false; }
     void Relayout(int width, int height);   // OnLayout with painting suspended, then one full repaint
     // Extra window styles for the page itself (for example WS_VSCROLL).
     virtual DWORD ExtraStyle() const { return 0; }

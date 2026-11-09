@@ -72,9 +72,11 @@ struct Settings {
     } focus;
 
     struct Shortcuts {
-        ShortcutSetting activate{false, "Ctrl+Shift+P"};
-        ShortcutSetting ghost{false, "Ctrl+Shift+G"};
-        ShortcutSetting focus{false, "Ctrl+Shift+F"};
+        // On by default. Three modifiers keep them clear of the shortcuts other apps use (Ctrl+Shift+P opens a private
+        // window in Firefox and the command palette in VS Code, and a global hotkey would steal those everywhere).
+        ShortcutSetting activate{true, "Ctrl+Alt+Shift+P"};
+        ShortcutSetting ghost{true, "Ctrl+Alt+Shift+G"};
+        ShortcutSetting focus{true, "Ctrl+Alt+Shift+F"};
     } shortcuts;
 };
 

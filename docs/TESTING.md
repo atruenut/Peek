@@ -26,7 +26,7 @@ and a UI Automation read of a native button. On Linux: `tests/run.sh` (portable 
    Several files should produce **one** investigation. Remove entries and confirm they disappear.
 8. **Focus**: Live over Notepad, Explorer, a Chromium page, an elevated window (partial data expected). Shift hold,
    Freeze, Pin (move the target window; the frame follows), Esc, hierarchy expand, copy text/JSON/C, password field value hidden.
-9. **Shortcuts**: off by default; enable one; conflict with an existing shortcut is reported.
+9. **Shortcuts**: on by default (Ctrl+Alt+Shift+P/G/F); each works from another app; untick one and Apply to turn it off; a conflict with another program is reported beside the entry.
 10. **Displays/DPI**: second monitor, mixed DPI, move the HUD between them, change scaling, unplug the chosen monitor.
 11. **Fullscreen**: HUD hides in a fullscreen video/game and returns; `Fullscreen=show` keeps it.
 12. **Themes**: light, dark, follow Windows; note any controls that stay light.

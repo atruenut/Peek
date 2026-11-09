@@ -102,5 +102,11 @@ cross-compiler, so **nothing that calls Windows APIs has been executed**. Compil
   Fix: `Page::Relayout` suspends painting, runs `OnLayout`, then repaints the whole page once (used for resize, DPI/theme change
   and Settings scrolling); pages also repaint when shown and use `CS_HREDRAW|CS_VREDRAW`. Still untested on Windows: if a glitch
   remains, note which tab and action triggers it.
+- 2026-11-08: resize felt laggy after the repaint fix because `Page::Relayout` forced a synchronous repaint of every child on each
+  `WM_SIZE`. Now only Settings uses it on resize (`RepaintOnResize`), and it no longer uses `RDW_UPDATENOW`.
+- 2026-11-08: global shortcuts are on by default, as `Ctrl+Alt+Shift+P/G/F` (the old Ctrl+Shift keys would have taken Firefox/VS Code
+  shortcuts system-wide). `General/SettingsVersion=2` marks files that record the user's own choice; older files' shortcut entries
+  are ignored once so existing installs pick up the new defaults. Releases: tag push -> `release` job in the workflow (never run yet);
+  v0.2.0 was also published by hand from the Linux cross-compiled binary.
 
 (Add further dated notes here.)

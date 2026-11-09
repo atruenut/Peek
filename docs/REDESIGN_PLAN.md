@@ -89,7 +89,7 @@ Values are validated and clamped on load. No registry use for settings (the opti
 
 ## 5. Explicit design decisions
 
-- Global hotkeys default to **off**; each has its own enable flag and a configurable key string. Conflicts are
+- Global hotkeys default to **on** (changed 2026-11-08 at the owner's request; three-modifier keys avoid stealing common app shortcuts); each has its own enable flag and a configurable key string. Conflicts are
   detected both between PeekII's own shortcuts and via `RegisterHotKey` failure, and reported in Settings.
 - No low-level keyboard or mouse hooks anywhere.
 - Window noise reduction: a window `CREATE` alone is not reported. `SHOW`, `HIDE` and `DESTROY` of a *visible*

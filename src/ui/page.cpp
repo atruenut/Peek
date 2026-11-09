@@ -40,7 +40,7 @@ void Page::Relayout(int width, int height) {
     OnLayout(width, height);
     if (--redraw_depth_ == 0) {
         SendMessageW(hwnd_, WM_SETREDRAW, TRUE, 0);
-        RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+        RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
     }
 }
 
@@ -261,7 +261,10 @@ LRESULT Page::Handle(UINT message, WPARAM wparam, LPARAM lparam) {
             OnCreate();
             return 0;
         case WM_SIZE:
-            Relayout(LOWORD(lparam), HIWORD(lparam));
+            // Plain layout while the window is being dragged larger or smaller (cheap); only pages that
+            // reposition many controls (Settings, with its scroll bar) need the suspended-paint version.
+            if (RepaintOnResize()) Relayout(LOWORD(lparam), HIWORD(lparam));
+            else OnLayout(LOWORD(lparam), HIWORD(lparam));
             return 0;
         case WM_COMMAND:
             OnCommand(LOWORD(wparam), HIWORD(wparam), reinterpret_cast<HWND>(lparam));

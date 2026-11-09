@@ -44,6 +44,7 @@ static void IniTests() {
 
 static void HotkeyTests() {
     HotkeySpec spec;
+    CHECK(ParseHotkey("Ctrl+Alt+Shift+G", spec) && FormatHotkey(spec) == "Ctrl+Alt+Shift+G");
     CHECK(ParseHotkey("Ctrl+Shift+G", spec));
     CHECK(spec.modifiers == (kModControl | kModShift) && spec.vk == 'G');
     CHECK(FormatHotkey(spec) == "Ctrl+Shift+G");
@@ -64,9 +65,21 @@ static void HotkeyTests() {
 
 static void SettingsTests() {
     Settings defaults;
-    CHECK(!defaults.shortcuts.activate.enabled);     // shortcuts must be off by default
-    CHECK(!defaults.shortcuts.ghost.enabled);
-    CHECK(!defaults.shortcuts.focus.enabled);
+    CHECK(defaults.shortcuts.activate.enabled);      // shortcuts are on by default
+    CHECK(defaults.shortcuts.ghost.enabled);
+    CHECK(defaults.shortcuts.focus.enabled);
+    // An old (version 1) file saved "all off"; it must not switch the new defaults off again.
+    IniFile old_file;
+    old_file.Parse("[Shortcuts]\nActivateEnabled=0\nActivate=Ctrl+Shift+P\n");
+    Settings migrated;
+    LoadFromIni(old_file, migrated);
+    CHECK(migrated.shortcuts.activate.enabled && migrated.shortcuts.activate.key == "Ctrl+Alt+Shift+P");
+    // A version 2 file is honored.
+    IniFile current_file;
+    current_file.Parse("[General]\nSettingsVersion=2\n[Shortcuts]\nActivateEnabled=0\n");
+    Settings honored;
+    LoadFromIni(current_file, honored);
+    CHECK(!honored.shortcuts.activate.enabled);
     CHECK(!defaults.ghost.group_lifecycle);
     CHECK(defaults.hud.visible);
 
@@ -103,7 +116,7 @@ static void SettingsTests() {
               "[Ghost]\nRetention=3\nTrace=banana\nFilterCategories=0\nFilterMinutes=-9\n"
               "[Unlock]\nMaxDepth=99\nMaxFiles=0\n"
               "[Focus]\nHighlightColor=notacolor\nHighlightWidth=500\n"
-              "[Shortcuts]\nGhost=NoModifierKey\nFocus=Ctrl+Shift+F\nFocusEnabled=maybe\n");
+              "[General]\nSettingsVersion=2\n[Shortcuts]\nGhost=NoModifierKey\nFocus=Ctrl+Shift+F\nFocusEnabled=maybe\n");
     Settings repaired;
     LoadFromIni(bad, repaired);
     CHECK(repaired.hud.opacity == 100);
@@ -119,8 +132,8 @@ static void SettingsTests() {
     CHECK(repaired.unlock.max_files == 1);
     CHECK(repaired.focus.highlight_color == "#3985FF");
     CHECK(repaired.focus.highlight_width == 12);
-    CHECK(repaired.shortcuts.ghost.key == "Ctrl+Shift+G");
-    CHECK(!repaired.shortcuts.focus.enabled);             // unparsable bool keeps the default (off)
+    CHECK(repaired.shortcuts.ghost.key == "Ctrl+Alt+Shift+G");
+    CHECK(repaired.shortcuts.focus.enabled);              // unparsable bool keeps the default (on)
 
     std::uint32_t rgb = 0;
     CHECK(ParseColor("#3985FF", rgb) && rgb == 0x3985FF);

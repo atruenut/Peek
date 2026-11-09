@@ -110,9 +110,9 @@ void Sanitize(Settings& s) {
     s.focus.highlight_width = std::clamp(s.focus.highlight_width, 1, 12);
     s.focus.highlight_duration_ms = std::clamp(s.focus.highlight_duration_ms, 0, 600000);
 
-    SanitizeShortcut(s.shortcuts.activate, "Ctrl+Shift+P");
-    SanitizeShortcut(s.shortcuts.ghost, "Ctrl+Shift+G");
-    SanitizeShortcut(s.shortcuts.focus, "Ctrl+Shift+F");
+    SanitizeShortcut(s.shortcuts.activate, "Ctrl+Alt+Shift+P");
+    SanitizeShortcut(s.shortcuts.ghost, "Ctrl+Alt+Shift+G");
+    SanitizeShortcut(s.shortcuts.focus, "Ctrl+Alt+Shift+F");
 }
 
 void LoadFromIni(const IniFile& ini, Settings& s) {
@@ -155,15 +155,20 @@ void LoadFromIni(const IniFile& ini, Settings& s) {
         target.enabled = ReadBool(ini, "Shortcuts", (std::string(name) + "Enabled").c_str(), target.enabled);
         if (ini.Has("Shortcuts", name)) target.key = ini.Get("Shortcuts", name);
     };
-    shortcut("Activate", s.shortcuts.activate);
-    shortcut("Ghost", s.shortcuts.ghost);
-    shortcut("Focus", s.shortcuts.focus);
+    // Files written before version 2 saved the old "all off" shortcut defaults; ignore them once so the new
+    // defaults (on) apply. From then on the file records the user's own choice.
+    if (ReadInt(ini, "General", "SettingsVersion", 1) >= 2) {
+        shortcut("Activate", s.shortcuts.activate);
+        shortcut("Ghost", s.shortcuts.ghost);
+        shortcut("Focus", s.shortcuts.focus);
+    }
 
     Sanitize(s);
 }
 
 IniFile ToIni(const Settings& s) {
     IniFile ini;
+    ini.Set("General", "SettingsVersion", "2");
     ini.Set("General", "Theme", kTheme.Name(s.general.theme));
     ini.Set("General", "CloseButton", kClose.Name(s.general.close_button));
     ini.Set("General", "StartWithWindow", Bool(s.general.start_with_window));

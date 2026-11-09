@@ -74,13 +74,20 @@ original. MIT licensed.
 2. **Tray icon** - open the window, toggle HUD, pause monitoring, choose Trace mode, start Focus, Exit.
 3. **Investigation window** - the tabs above. Closing it hides it (or exits, see Settings).
 
-Global shortcuts are **off by default**, configurable per shortcut, with conflict detection. PeekII uses no
+Global shortcuts are **on by default** (`Ctrl+Alt+Shift+P/G/F`), configurable and individually switchable, with conflict detection. PeekII uses no
 keyboard or mouse hooks.
 
 ## Requirements
 
 - Windows 10 or Windows 11 (x64). Windows on ARM: see Build.
 - No installer, no runtime, no network access, no telemetry, no accounts.
+
+## Download
+
+Ready-made Windows x64 builds are on the [Releases page](https://github.com/atruenut/Peek/releases). Download
+`PeekII.exe` (check it against `SHA256SUMS.txt`) and run it; no installer is needed. The executable is not code-signed,
+so Windows SmartScreen may ask you to confirm ("More info" > "Run anyway"). Pushing a tag such as `v0.2.1` makes the
+GitHub workflow build and publish a new release automatically.
 
 ## Build
 
@@ -160,12 +167,12 @@ HighlightColor=#3985FF
 HighlightWidth=3
 HighlightDurationMs=0
 [Shortcuts]
-ActivateEnabled=0
-Activate=Ctrl+Shift+P
-GhostEnabled=0
-Ghost=Ctrl+Shift+G
-FocusEnabled=0
-Focus=Ctrl+Shift+F
+ActivateEnabled=1
+Activate=Ctrl+Alt+Shift+P
+GhostEnabled=1
+Ghost=Ctrl+Alt+Shift+G
+FocusEnabled=1
+Focus=Ctrl+Alt+Shift+F
 ```
 
 Valid values: `Theme` system/light/dark; `CloseButton` hide/exit; `Mode` compact/expanded; `Anchor`

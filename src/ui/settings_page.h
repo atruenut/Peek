@@ -22,6 +22,7 @@ protected:
     void OnCommand(int id, int code, HWND control) override;
     void OnMessage(UINT message, WPARAM wparam, LPARAM lparam) override;
     DWORD ExtraStyle() const override { return WS_VSCROLL; }
+    bool RepaintOnResize() const override { return true; }
     HBRUSH OnControlColor(HWND control) override;
 
 private:
